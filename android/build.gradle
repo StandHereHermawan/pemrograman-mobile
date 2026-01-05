@@ -1,3 +1,16 @@
+buildscript {
+    repositories {
+        google()
+        mavenCentral()
+    }
+    dependencies {
+        // ... dependencies lain ...
+        
+        // TAMBAHKAN BARIS INI:
+        classpath 'com.google.gms:google-services:4.4.2' // Cek versi terbaru jika perlu
+    }
+}
+
 allprojects {
     repositories {
         google()
