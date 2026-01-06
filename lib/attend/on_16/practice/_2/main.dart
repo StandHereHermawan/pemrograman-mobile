@@ -146,19 +146,22 @@ class _UmKmStatefulHomePageState extends State<UmKmStatefulHomePage> {
       child: adminPageButton,
     );
 
-    final dynamic contentSelectMenuVisitorOrAdminSection = Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        crossAxisAlignment: CrossAxisAlignment.center,
-        spacing: 50,
-        children: [
-          logoSection,
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            spacing: 7,
-            children: [customerPageButtonSection, adminPageButtonSection],
-          )
-        ],
+    final dynamic contentSelectMenuVisitorOrAdminSection =
+        SingleChildScrollView(
+      child: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          spacing: 50,
+          children: [
+            logoSection,
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              spacing: 7,
+              children: [customerPageButtonSection, adminPageButtonSection],
+            )
+          ],
+        ),
       ),
     );
 
@@ -649,7 +652,6 @@ class WidgetListProduct extends StatelessWidget {
             return ListView(
               key: key,
               padding: const EdgeInsets.all(15.0),
-              
               children: List<Widget>.generate(
                 snapshotStream.data!.size,
                 (index) {
@@ -659,7 +661,8 @@ class WidgetListProduct extends StatelessWidget {
                     padding: const EdgeInsets.all(8.0),
                     child: MaterialButton(
                       onPressed: () {},
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(15)),
                       color: DefaultColors.secondaryColors,
                       child: ProductCard(product: data, key: key),
                     ),
