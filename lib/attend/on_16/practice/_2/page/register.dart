@@ -12,8 +12,11 @@ class RegisterPage extends StatefulWidget {
 
 class _RegisterPageState extends State<RegisterPage> {
   // 2. Buat Controller untuk menangkap input teks
+// Di dalam class _RegisterPageState
   final TextEditingController _usernameController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
+  final TextEditingController _confirmPasswordController =
+      TextEditingController(); // Tambahkan ini
 
   bool _obscureText = true;
   bool _isLoading = false; // Untuk indikator loading
@@ -23,6 +26,7 @@ class _RegisterPageState extends State<RegisterPage> {
   void dispose() {
     _usernameController.dispose();
     _passwordController.dispose();
+    _confirmPasswordController.dispose(); // Tambahkan ini
     super.dispose();
   }
 
@@ -33,10 +37,23 @@ class _RegisterPageState extends State<RegisterPage> {
     //
     // Validasi sederhana
     //
-    if (_usernameController.text.isEmpty || _passwordController.text.isEmpty) {
+    // 1. Validasi field tidak kosong
+    if (_usernameController.text.isEmpty ||
+        _passwordController.text.isEmpty ||
+        _confirmPasswordController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Semua field harus diisi")),
+      );
+      return;
+    }
+
+    // 2. Validasi kecocokan password (LOGIK BARU)
+    if (_passwordController.text != _confirmPasswordController.text) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-            content: Text("Username dan Password tidak boleh kosong")),
+          backgroundColor: Colors.orange,
+          content: Text("Password dan Konfirmasi Password tidak cocok!"),
+        ),
       );
       return;
     }
@@ -179,6 +196,18 @@ class _RegisterPageState extends State<RegisterPage> {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [],
                     ),
+
+                    const SizedBox(height: 20), // Jarak
+
+                    _buildLabel("CONFIRM PASSWORD"), // Label Baru
+                    _buildTextField(
+                      hint: "**********",
+                      isPassword: true,
+                      controller: _confirmPasswordController, // Controller Baru
+                      suffixIcon:
+                          Icon(Icons.lock_outline, color: Colors.blueGrey[200]),
+                    ),
+
                     const SizedBox(height: 30),
 
                     // Button Sign Up
