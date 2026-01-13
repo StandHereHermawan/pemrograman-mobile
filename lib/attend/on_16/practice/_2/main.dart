@@ -15,10 +15,11 @@ void main() async {
   runApp(MaterialApp(
       // home: const Homepage(),
       home: const CustomerHomePage(),
-      // home: const DetailProductPage(),
+      // home: const DetailProductPageDummy(),
       // home: const LoginPage(),
       // home: const RegisterPage(),
       // home: const AddProductPage(),
+      // home: const AddHampersPage(),
       theme: ThemeData(fontFamily: 'Sans-Serif'), // Sesuaikan font jika ada,
       debugShowCheckedModeBanner: false,
       color: Colors.white));

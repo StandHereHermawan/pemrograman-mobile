@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:pemprograman_mobile/attend/on_16/practice/_2/data/product.dart';
 
 // Pastikan import model Product Anda jika berada di file terpisah
 // import 'path/to/product_model.dart'; 
@@ -47,7 +48,7 @@ class _AddProductPageState extends State<AddProductPage> {
       // Referensi ke Collection
       // Menggunakan 'products' string atau Product.collectionName jika aksesibel
       CollectionReference productsRef =
-          FirebaseFirestore.instance.collection("products");
+          FirebaseFirestore.instance.collection(Product.collectionName);
 
       // Generate Referensi Dokumen baru (agar kita dapat ID-nya dulu)
       DocumentReference newDocRef = productsRef.doc();
@@ -132,7 +133,7 @@ class _AddProductPageState extends State<AddProductPage> {
                       hint: "e.g. Choco Lava Cookies",
                       controller: _nameController,
                     ),
-                    
+                  
                     const SizedBox(height: 20),
                     
                     _buildLabel("DESCRIPTION"),

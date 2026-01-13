@@ -5,7 +5,9 @@
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:pemprograman_mobile/attend/on_16/practice/_2/data/hampers.dart';
 import 'package:pemprograman_mobile/attend/on_16/practice/_2/data/product.dart';
+import 'package:pemprograman_mobile/attend/on_16/practice/_2/page/detail_product.dart';
 import 'package:pemprograman_mobile/attend/on_16/practice/_2/user_interface_component/product_card.dart';
 
 class CustomerHomePage extends StatelessWidget {
@@ -23,7 +25,7 @@ class CustomerHomePage extends StatelessWidget {
           borderRadius: BorderRadius.circular(10),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.05),
+              color: Colors.black.withAlpha(5),
               blurRadius: 10,
               spreadRadius: 2,
             )
@@ -52,33 +54,31 @@ class CustomerHomePage extends StatelessWidget {
     final dynamic body = ListView(
       padding: const EdgeInsets.all(16.0),
       children: [
-        // // Banner Placeholder
-        //
-        // Container(
-        //   height: 180,
-        //   decoration: BoxDecoration(
-        //     color: Colors.grey[300],
-        //     borderRadius: BorderRadius.circular(20),
-        //   ),
-        // ),
-        // const SizedBox(height: 10),
-        // // Dot Indicator
-        // Row(
-        //   mainAxisAlignment: MainAxisAlignment.center,
-        //   children: [
-        //     _buildDot(true),
-        //     _buildDot(false),
-        //     _buildDot(false),
-        //   ],
-        // ),
-        // const SizedBox(height: 20),
-        //
+        // Banner Placeholder
+
+        Container(
+          height: 180,
+          decoration: BoxDecoration(
+            color: Colors.grey[300],
+            borderRadius: BorderRadius.circular(20),
+          ),
+        ),
+        const SizedBox(height: 10),
+        // Dot Indicator
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            _buildDot(false),
+            _buildDot(false),
+            _buildDot(false),
+          ],
+        ),
+        const SizedBox(height: 20),
 
         // Section Popular Meal
         _buildSectionHeader("Popular Meal Menu"),
         const SizedBox(height: 10),
         _buildPopularCard(),
-
         const SizedBox(height: 20),
 
         // Section Kue
@@ -89,7 +89,7 @@ class CustomerHomePage extends StatelessWidget {
           child: StreamBuilder<QuerySnapshot>(
             // 1. Query ke Firestore
             stream: FirebaseFirestore.instance
-                .collection('products')
+                .collection(Product.collectionName)
                 .orderBy('created_at',
                     descending:
                         true) // Urutkan dari yang terbaru (Z-A / Waktu besar ke kecil)
@@ -121,8 +121,19 @@ class CustomerHomePage extends StatelessWidget {
                 itemBuilder: (context, index) {
                   // Ambil data per dokumen
                   final data = documents[index].data() as Map<String, dynamic>;
-
-                  return ProductCardPrompted(product: Product.fromJson(data));
+                  return ProductCardPrompted(
+                      onTap: () {
+                        // Contoh penggunaan di halaman Home
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => DetailProductPage(
+                              product: Product.fromJson(data),
+                            ),
+                          ),
+                        );
+                      },
+                      product: Product.fromJson(data));
                 },
               );
             },
@@ -130,22 +141,61 @@ class CustomerHomePage extends StatelessWidget {
         ),
         const SizedBox(height: 10),
 
-        // Section Hampers
         _buildSectionHeader("Hampers"),
         const SizedBox(height: 10),
         SizedBox(
           height: 240,
-          child: ListView(
-            scrollDirection: Axis.horizontal,
-            physics: const AlwaysScrollableScrollPhysics(),
-            children: [
-              ProductCardPrompted(
-                  name: "Gift Box", price: "50.00", rate: "4.6"),
-              ProductCardPrompted(name: "Parcel", price: "45.00"),
-              ProductCardPrompted(name: "Parcel", price: "45.00"),
-              ProductCardPrompted(name: "Parcel", price: "45.00"),
-              ProductCardPrompted(name: "Parcel", price: "45.00"),
-            ],
+          child: StreamBuilder<QuerySnapshot>(
+            // 1. Query ke Firestore
+            stream: FirebaseFirestore.instance
+                .collection(Hampers.collectionName)
+                .orderBy('created_at',
+                    descending:
+                        true) // Urutkan dari yang terbaru (Z-A / Waktu besar ke kecil)
+                .limit(5) // Batasi hanya 5 dokumen
+                .snapshots(),
+            builder: (context, snapshot) {
+              // A. Jika sedang loading
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Center(child: CircularProgressIndicator());
+              }
+
+              // B. Jika ada Error
+              if (snapshot.hasError) {
+                return const Center(child: Text("Terjadi kesalahan"));
+              }
+
+              // C. Jika Data Kosong
+              if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                return const Center(child: Text("Belum ada produk"));
+              }
+
+              // D. Jika Data Ada
+              final documents = snapshot.data!.docs;
+
+              return ListView.builder(
+                scrollDirection: Axis.horizontal,
+                itemCount: documents.length,
+                physics: const AlwaysScrollableScrollPhysics(),
+                itemBuilder: (context, index) {
+                  // Ambil data per dokumen
+                  final data = documents[index].data() as Map<String, dynamic>;
+                  return ProductCardPrompted(
+                      onTap: () {
+                        // Contoh penggunaan di halaman Home
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => DetailProductPage(
+                              product: Product.fromJson(data),
+                            ),
+                          ),
+                        );
+                      },
+                      product: Product.fromJson(data));
+                },
+              );
+            },
           ),
         ),
       ],
@@ -159,17 +209,17 @@ class CustomerHomePage extends StatelessWidget {
     );
   }
 
-  // Widget _buildDot(bool isActive) {
-  //   return Container(
-  //     margin: const EdgeInsets.symmetric(horizontal: 4),
-  //     height: 8,
-  //     width: 8,
-  //     decoration: BoxDecoration(
-  //       color: isActive ? Colors.red : Colors.grey[300],
-  //       shape: BoxShape.circle,
-  //     ),
-  //   );
-  // }
+  Widget _buildDot(bool isActive) {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 4),
+      height: 8,
+      width: 8,
+      decoration: BoxDecoration(
+        color: isActive ? Colors.red : Colors.grey[300],
+        shape: BoxShape.circle,
+      ),
+    );
+  }
 
   Widget _buildSectionHeader(String title) {
     return Row(
@@ -231,16 +281,17 @@ class CustomerHomePage extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10)
+          BoxShadow(color: Colors.black.withAlpha(5), blurRadius: 10)
         ],
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
-          _navItem(Icons.home, "Home", true),
-          _navItem(Icons.person_outline, "", false),
-          _navItem(Icons.shopping_cart_outlined, "", false, badge: "7"),
-          _navItem(Icons.chat_bubble_outline, "", false, badge: " "),
+          _navItem(Icons.home, "Home", true),          
+          _navItem(Icons.shopping_cart_outlined, "Cart", false, badge: "0"),
+          _navItem(Icons.point_of_sale, "To Paid", false,  badge: "0"),
+          _navItem(Icons.delivery_dining, "To Deliver", false,  badge: "0"),
+          _navItem(Icons.check_circle, "Finished", false),
         ],
       ),
     );
