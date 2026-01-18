@@ -1,4 +1,4 @@
-class Users {
+class User {
   static const String collectionName = "users";
   static const String defaultRole = "customer";
   static const String specialRole = "admin";
@@ -7,7 +7,7 @@ class Users {
   final String password;
   final String createdAt;
 
-  const Users({
+  const User({
     this.id = "0",
     this.username = "Kosong",
     this.password = "Kosong",
@@ -19,7 +19,7 @@ class Users {
     return "{id:${this.id},username:${this.username},password:${this.password},createdAt:${this.createdAt}}";
   }
 
-  Users.fromJson(Map<String, dynamic>? jsonObject)
+  User.fromJson(Map<String, dynamic>? jsonObject)
       : this(
           id: jsonObject?['id'] as String,
           username: jsonObject?['username'] as String,

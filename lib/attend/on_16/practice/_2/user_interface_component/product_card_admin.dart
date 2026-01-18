@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:pemprograman_mobile/attend/on_16/practice/_2/data/product.dart';
 
-class ProductCardPrompted extends StatelessWidget {
+class ProductCardAdmin extends StatelessWidget {
   // Mendefinisikan properti sebagai variabel final
   final Product product;
   final String id;
@@ -9,7 +9,7 @@ class ProductCardPrompted extends StatelessWidget {
   final VoidCallback onTap;
 
   // Constructor dengan Named Parameters dan Default Values
-  const ProductCardPrompted(
+  const ProductCardAdmin(
       {super.key,
       this.product = const Product(
         id: "Not Have An Id",
@@ -65,6 +65,20 @@ class ProductCardPrompted extends StatelessWidget {
                     ],
                   ),
 
+                  // --- Id Produk ---
+                  Text(
+                    "id: ${product.id}",
+                    style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 10,
+                        color: Colors.grey),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+
+                  const Spacer(),
+                  const SizedBox(height: 10),
+
                   // --- Gambar Produk ---
                   const Center(
                     child: CircleAvatar(
@@ -88,7 +102,7 @@ class ProductCardPrompted extends StatelessWidget {
                   Text(
                     product.description,
                     style: const TextStyle(color: Colors.grey, fontSize: 10),
-                    maxLines: 2,
+                    maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
 
@@ -131,13 +145,13 @@ class ProductCardPrompted extends StatelessWidget {
                               color: Colors.pink,
                               shape: BoxShape.circle,
                             ),
-                            child: const Icon(Icons.shopping_cart,
+                            child: const Icon(Icons.mode_edit_rounded,
                                 color: Colors.white, size: 18),
                           ),
                         ),
                       )
                     ],
-                  )
+                  ),
                 ],
               ),
             ),

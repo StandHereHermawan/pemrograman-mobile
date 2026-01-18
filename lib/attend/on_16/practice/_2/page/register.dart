@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:pemprograman_mobile/attend/on_16/practice/_2/data/credential.dart';
-import 'package:pemprograman_mobile/attend/on_16/practice/_2/data/user.dart'; // 1. Import Firestore
+import 'package:pemprograman_mobile/attend/on_16/practice/_2/data/user.dart';
+import 'package:pemprograman_mobile/attend/on_16/practice/_2/page/login.dart'; // 1. Import Firestore
 
 class RegisterPage extends StatefulWidget {
   const RegisterPage({super.key});
@@ -20,6 +21,12 @@ class _RegisterPageState extends State<RegisterPage> {
 
   bool _obscureText = true;
   bool _isLoading = false; // Untuk indikator loading
+
+  @override
+  void initState() {
+    // TODO: implement initState
+    super.initState();
+  }
 
   // Jangan lupa dispose controller saat halaman ditutup
   @override
@@ -65,7 +72,7 @@ class _RegisterPageState extends State<RegisterPage> {
     try {
       // PROSES PENGIRIMAN DATA KE FIRESTORE
       CollectionReference users =
-          FirebaseFirestore.instance.collection(Users.collectionName);
+          FirebaseFirestore.instance.collection(User.collectionName);
       CollectionReference credentials =
           FirebaseFirestore.instance.collection(Credential.collectionName);
 
@@ -73,12 +80,34 @@ class _RegisterPageState extends State<RegisterPage> {
       DocumentReference usersDocumentReference = users.doc();
       DocumentReference credentialsDocumentReference = credentials.doc();
 
+      // Lakukan Query ke database
+      QuerySnapshot existingUserSnapshot = await users
+          .where('username', isEqualTo: _usernameController.text)
+          .limit(1) // Optimasi: Cukup ambil 1 saja jika ketemu
+          .get();
+
+      // 2. Cek apakah ada datanya
+      if (existingUserSnapshot.docs.isNotEmpty) {
+        // Jika ada, berarti username sudah terpakai
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              backgroundColor: Colors.red,
+              content:
+                  Text("Username sudah digunakan, silakan pilih yang lain."),
+            ),
+          );
+        }
+        // Hentikan proses disini, jangan lanjut ke bawah
+        return;
+      }
+
       // 2. Gunakan referensi tersebut untuk menyimpan (.set)
       await usersDocumentReference.set({
         'id': usersDocumentReference.id,
         'username': _usernameController.text,
         'password': _passwordController.text,
-        'role': Users.defaultRole,
+        'role': User.defaultRole,
         'created_at': FieldValue.serverTimestamp(),
       });
 
@@ -97,6 +126,15 @@ class _RegisterPageState extends State<RegisterPage> {
         // Reset form setelah sukses
         _usernameController.clear();
         _passwordController.clear();
+        _confirmPasswordController.clear();
+
+        // Masukkan logic pindah halaman di sini
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => LoginPage(),
+          ),
+        );
       }
     } catch (e) {
       if (mounted) {
@@ -191,7 +229,7 @@ class _RegisterPageState extends State<RegisterPage> {
                         },
                       ),
                     ),
-                    const SizedBox(height: 10),
+
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [],
@@ -204,11 +242,11 @@ class _RegisterPageState extends State<RegisterPage> {
                       hint: "**********",
                       isPassword: true,
                       controller: _confirmPasswordController, // Controller Baru
-                      suffixIcon:
-                          Icon(Icons.lock_outline, color: Colors.blueGrey[200]),
+                      // suffixIcon:
+                      //     Icon(Icons.lock_outline, color: Colors.blueGrey[200]),
                     ),
 
-                    const SizedBox(height: 30),
+                    const SizedBox(height: 25),
 
                     // Button Sign Up
                     SizedBox(
@@ -235,20 +273,45 @@ class _RegisterPageState extends State<RegisterPage> {
                               ),
                       ),
                     ),
-                    const SizedBox(height: 40),
+                    const SizedBox(height: 10),
 
                     // Footer Sign Up (Tidak berubah)
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        const Text("Already have an account? ",
-                            style: TextStyle(color: Colors.grey)),
-                        GestureDetector(
-                          child: const Text(
-                            "log in",
-                            style: TextStyle(
-                              color: Color(0xFFD81B60),
-                              fontWeight: FontWeight.bold,
+                        Material(
+                          color: Colors
+                              .transparent, // Agar background tetap terlihat
+                          child: InkWell(
+                            borderRadius: BorderRadius.circular(
+                                10), // Biar sudut ripple melengkung
+                            onTap: () {
+                              // Masukkan logic pindah halaman di sini
+                              Navigator.pushReplacement(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => LoginPage(),
+                                ),
+                              );
+                            },
+                            child: Padding(
+                              padding: const EdgeInsets.all(
+                                  8.0), // Jarak sentuh agar lebih empuk
+                              child: Row(
+                                children: const [
+                                  Text(
+                                    "Already have an account? ",
+                                    style: TextStyle(color: Colors.grey),
+                                  ),
+                                  Text(
+                                    "log in",
+                                    style: TextStyle(
+                                      color: Color(0xFFD81B60),
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
                           ),
                         ),

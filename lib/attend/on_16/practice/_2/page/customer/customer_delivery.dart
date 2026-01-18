@@ -1,23 +1,28 @@
-// import 'dart:async';
-// import 'package:flutter/foundation.dart';
-// import 'package:svg_flutter/svg.dart';
-// import 'package:pemprograman_mobile/attend/on_16/practice/_2/page/home_page.dart';
-
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:pemprograman_mobile/attend/on_16/practice/_2/data/hampers.dart';
 import 'package:pemprograman_mobile/attend/on_16/practice/_2/data/product.dart';
+import 'package:pemprograman_mobile/attend/on_16/practice/_2/page/customer/customer_cart.dart';
+import 'package:pemprograman_mobile/attend/on_16/practice/_2/page/customer/customer_finished_order.dart';
+import 'package:pemprograman_mobile/attend/on_16/practice/_2/page/customer/customer_home.dart';
+import 'package:pemprograman_mobile/attend/on_16/practice/_2/page/customer/customer_receipt.dart';
 import 'package:pemprograman_mobile/attend/on_16/practice/_2/page/detail_product.dart';
-import 'package:pemprograman_mobile/attend/on_16/practice/_2/user_interface_component/product_card.dart';
+import 'package:pemprograman_mobile/attend/on_16/practice/_2/page/profile_dummy.dart';
+import 'package:pemprograman_mobile/attend/on_16/practice/_2/user_interface_component/product_card_customer.dart';
 
-class CustomerHomePage extends StatelessWidget {
-  const CustomerHomePage({super.key});
+class CustomerDeliveryPage extends StatelessWidget {
+  const CustomerDeliveryPage({super.key});
 
   @override
   Widget build(BuildContext context) {
     final dynamic appbar = AppBar(
       backgroundColor: Colors.white,
       elevation: 0,
+      centerTitle: true,
+      leading: IconButton(
+        icon: const Icon(Icons.arrow_back_ios_new, color: Colors.grey),
+        onPressed: () => Navigator.pop(context),
+      ),
       title: Container(
         height: 45,
         decoration: BoxDecoration(
@@ -25,28 +30,44 @@ class CustomerHomePage extends StatelessWidget {
           borderRadius: BorderRadius.circular(10),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withAlpha(5),
+              color: Colors.black.withAlpha(20),
               blurRadius: 10,
               spreadRadius: 2,
             )
           ],
         ),
-        child: const TextField(
-          decoration: InputDecoration(
-            hintText: 'Search',
-            prefixIcon: Icon(Icons.search, color: Colors.grey),
-            border: InputBorder.none,
-            contentPadding: EdgeInsets.symmetric(vertical: 10),
-          ),
+        child: Expanded(
+          child: Column(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: Text(
+                    "Customer Delivery",
+                    style: TextStyle(color: Colors.grey),
+                  ),
+                ),
+              ]),
         ),
       ),
-      actions: const [
+      actions: [
         Padding(
-          padding: EdgeInsets.only(right: 16.0),
-          child: CircleAvatar(
-            backgroundImage: NetworkImage(
-                'https://via.placeholder.com/150'), // Ganti foto profil
-          ),
+          padding: const EdgeInsets.only(right: 16.0),
+          child: InkWell(
+              onTap: () {
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => ProfilePage(key: key),
+                  ),
+                );
+              },
+              borderRadius: BorderRadius.circular(30),
+              child: CircleAvatar(
+                backgroundColor: Colors.black.withAlpha(50),
+                child: Icon(Icons.person_rounded),
+              )),
         )
       ],
     );
@@ -54,33 +75,6 @@ class CustomerHomePage extends StatelessWidget {
     final dynamic body = ListView(
       padding: const EdgeInsets.all(16.0),
       children: [
-        // Banner Placeholder
-
-        Container(
-          height: 180,
-          decoration: BoxDecoration(
-            color: Colors.grey[300],
-            borderRadius: BorderRadius.circular(20),
-          ),
-        ),
-        const SizedBox(height: 10),
-        // Dot Indicator
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            _buildDot(false),
-            _buildDot(false),
-            _buildDot(false),
-          ],
-        ),
-        const SizedBox(height: 20),
-
-        // Section Popular Meal
-        _buildSectionHeader("Popular Meal Menu"),
-        const SizedBox(height: 10),
-        _buildPopularCard(),
-        const SizedBox(height: 20),
-
         // Section Kue
         _buildSectionHeader("Kue"),
         const SizedBox(height: 10),
@@ -89,7 +83,7 @@ class CustomerHomePage extends StatelessWidget {
           child: StreamBuilder<QuerySnapshot>(
             // 1. Query ke Firestore
             stream: FirebaseFirestore.instance
-                .collection(Product.collectionName)
+                .collection(Hampers.collectionName)
                 .orderBy('created_at',
                     descending:
                         true) // Urutkan dari yang terbaru (Z-A / Waktu besar ke kecil)
@@ -121,7 +115,7 @@ class CustomerHomePage extends StatelessWidget {
                 itemBuilder: (context, index) {
                   // Ambil data per dokumen
                   final data = documents[index].data() as Map<String, dynamic>;
-                  return ProductCardPrompted(
+                  return ProductCardCustomer(
                       onTap: () {
                         // Contoh penggunaan di halaman Home
                         Navigator.push(
@@ -180,7 +174,7 @@ class CustomerHomePage extends StatelessWidget {
                 itemBuilder: (context, index) {
                   // Ambil data per dokumen
                   final data = documents[index].data() as Map<String, dynamic>;
-                  return ProductCardPrompted(
+                  return ProductCardCustomer(
                       onTap: () {
                         // Contoh penggunaan di halaman Home
                         Navigator.push(
@@ -205,19 +199,7 @@ class CustomerHomePage extends StatelessWidget {
       backgroundColor: Colors.white,
       appBar: appbar,
       body: body,
-      bottomNavigationBar: _buildBottomNav(),
-    );
-  }
-
-  Widget _buildDot(bool isActive) {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 4),
-      height: 8,
-      width: 8,
-      decoration: BoxDecoration(
-        color: isActive ? Colors.red : Colors.grey[300],
-        shape: BoxShape.circle,
-      ),
+      bottomNavigationBar: _buildBottomNav(context),
     );
   }
 
@@ -233,49 +215,7 @@ class CustomerHomePage extends StatelessWidget {
     );
   }
 
-  Widget _buildPopularCard() {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(15),
-        boxShadow: [
-          BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10)
-        ],
-      ),
-      child: Row(
-        children: [
-          ClipRRect(
-            borderRadius: BorderRadius.circular(10),
-            child: Container(
-                color: Colors.grey[200],
-                height: 70,
-                width: 70), // Ganti dengan Image.asset
-          ),
-          const SizedBox(width: 15),
-          const Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text("Pepper Pizza",
-                    style:
-                        TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                Text("5kg box of Pizza",
-                    style: TextStyle(color: Colors.grey, fontSize: 12)),
-              ],
-            ),
-          ),
-          const Text("\$15",
-              style: TextStyle(
-                  color: Colors.pink,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 20)),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildBottomNav() {
+  Widget _buildBottomNav(context) {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 10),
       decoration: BoxDecoration(
@@ -287,52 +227,88 @@ class CustomerHomePage extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
-          _navItem(Icons.home, "Home", true),          
-          _navItem(Icons.shopping_cart_outlined, "Cart", false, badge: "0"),
-          _navItem(Icons.point_of_sale, "To Paid", false,  badge: "0"),
-          _navItem(Icons.delivery_dining, "To Deliver", false,  badge: "0"),
-          _navItem(Icons.check_circle, "Finished", false),
+          _navItem(Icons.home, "Home", false, onTap: () {
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(
+                builder: (context) => CustomerHomePage(key: key),
+              ),
+            );
+          }),
+          _navItem(Icons.shopping_cart_outlined, "Cart", false, badge: "0",
+              onTap: () {
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(
+                builder: (context) => CustomerCartPage(key: key),
+              ),
+            );
+          }),
+          _navItem(Icons.point_of_sale, "To Paid", false, badge: "0",
+              onTap: () {
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(
+                builder: (context) => CustomerReceiptPage(key: key),
+              ),
+            );
+          }),
+          _navItem(Icons.delivery_dining, "On Delivery", true,
+              badge: "0", onTap: () {}),
+          _navItem(Icons.check_circle, "Finished", false, onTap: () {
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(
+                builder: (context) => CustomerFinishedOrderPage(key: key),
+              ),
+            );
+          }),
         ],
       ),
     );
   }
 
-  Widget _navItem(IconData icon, String label, bool isActive, {String? badge}) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      decoration: BoxDecoration(
-        color: isActive ? Colors.pink[50] : Colors.transparent,
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Row(
-        children: [
-          Stack(
-            children: [
-              Icon(icon, color: isActive ? Colors.pink : Colors.grey),
-              if (badge != null)
-                Positioned(
-                  right: 0,
-                  top: 0,
-                  child: Container(
-                    padding: const EdgeInsets.all(2),
-                    decoration: const BoxDecoration(
-                        color: Colors.red, shape: BoxShape.circle),
-                    constraints:
-                        const BoxConstraints(minWidth: 12, minHeight: 12),
-                    child: Text(badge,
-                        style:
-                            const TextStyle(color: Colors.white, fontSize: 8),
-                        textAlign: TextAlign.center),
-                  ),
-                )
-            ],
-          ),
-          if (isActive) const SizedBox(width: 8),
-          if (isActive)
-            Text(label,
-                style: const TextStyle(
-                    color: Colors.pink, fontWeight: FontWeight.bold)),
-        ],
+  Widget _navItem(IconData icon, String label, bool isActive,
+      {String? badge, onTap}) {
+    return InkWell(
+      borderRadius: BorderRadius.circular(30),
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        decoration: BoxDecoration(
+          color: isActive ? Colors.pink[50] : Colors.transparent,
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Row(
+          children: [
+            Stack(
+              children: [
+                Icon(icon, color: isActive ? Colors.pink : Colors.grey),
+                if (badge != null)
+                  Positioned(
+                    right: 0,
+                    top: 0,
+                    child: Container(
+                      padding: const EdgeInsets.all(2),
+                      decoration: const BoxDecoration(
+                          color: Colors.red, shape: BoxShape.circle),
+                      constraints:
+                          const BoxConstraints(minWidth: 12, minHeight: 12),
+                      child: Text(badge,
+                          style:
+                              const TextStyle(color: Colors.white, fontSize: 8),
+                          textAlign: TextAlign.center),
+                    ),
+                  )
+              ],
+            ),
+            if (isActive) const SizedBox(width: 8),
+            if (isActive)
+              Text(label,
+                  style: const TextStyle(
+                      color: Colors.pink, fontWeight: FontWeight.bold)),
+          ],
+        ),
       ),
     );
   }

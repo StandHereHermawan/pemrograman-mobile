@@ -1,5 +1,11 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:pemprograman_mobile/attend/on_16/practice/_2/data/cart.dart';
+import 'package:pemprograman_mobile/attend/on_16/practice/_2/data/helper/product_quantity.dart';
+import 'package:pemprograman_mobile/attend/on_16/practice/_2/data/helper/product_quantity_detail.dart';
 import 'package:pemprograman_mobile/attend/on_16/practice/_2/data/product.dart';
+import 'package:pemprograman_mobile/attend/on_16/practice/_2/data/receipt.dart';
+// import 'package:pemprograman_mobile/attend/on_16/practice/_2/util/session_manager.dart';
 
 // 1. Tambahkan parameter Product pada Constructor
 class DetailProductPage extends StatefulWidget {
@@ -16,6 +22,8 @@ class DetailProductPage extends StatefulWidget {
 
 class _DetailProductPageState extends State<DetailProductPage> {
   int quantity = 1;
+  bool _isLoadingCart = false; // Untuk indikator loading tombol
+  bool _isLoadingBuyNow = false; // Untuk indikator loading tombol
 
   void _incrementQuantity() {
     setState(() {
@@ -29,6 +37,127 @@ class _DetailProductPageState extends State<DetailProductPage> {
         quantity--;
       }
     });
+  }
+
+  // --- LOGIC ADD TO CART ---
+  Future<void> _addToCart(int currentTotalPrice) async {
+    setState(() {
+      _isLoadingCart = true;
+    });
+
+    try {
+      // 1. Buat Referensi Dokumen Baru di Collection 'carts'
+      DocumentReference cartRef = FirebaseFirestore.instance
+          .collection(Cart.collectionName)
+          .doc(); // Biarkan Firestore generate ID unik otomatis
+
+      // 2. Siapkan Objek ProductQuantity (Item yang mau dibeli)
+      ProductQuantity item = ProductQuantity(
+        productId: widget.product.id,
+        quantity: quantity.toString(),
+      );
+
+      // 3. Siapkan Objek Cart (Bungkus item tadi ke dalam Cart)
+      Cart newCart = Cart(
+        id: cartRef.id, // Pakai ID dari referensi di atas
+        userId: "user_123", // Ganti dengan ID User login nanti
+        productCollection: [item], // Masukkan item ke dalam list
+        createdAt: DateTime.now().toString(),
+        cartType: "product",
+      );
+
+      // 4. Kirim ke Firestore (.set)
+      await cartRef.set(newCart.toJson());
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            backgroundColor: Colors.green,
+            content: Text("Berhasil masuk keranjang!"),
+            duration: Duration(seconds: 1),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            backgroundColor: Colors.red,
+            content: Text("Gagal: $e"),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoadingCart = false;
+        });
+      }
+    }
+  }
+  // -------------------------
+
+  // --- LOGIC ADD TO RECEIPT ---
+  // --- LOGIC BELI SEKARANG (CREATE RECEIPT) ---
+  Future<void> _addToReceipt(int currentTotalPrice, int quantity) async {
+    setState(() {
+      _isLoadingBuyNow = true;
+    });
+
+    try {
+      DocumentReference receiptRef = FirebaseFirestore.instance
+          .collection(Receipt.collectionName)
+          .doc(); // 1. Buat Referensi Dokumen Baru di Collection 'receipts'
+
+      // 2. Siapkan Data
+      // Karena struktur Receipt meminta List<Product>, kita bungkus produk saat ini ke dalam List.
+      // Catatan: Karena model Product tidak menyimpan quantity,
+      // kita hanya menyimpan info produknya dan total harga akhirnya.
+      List<ProductQuantityDetail> productsToBuy = [ProductQuantityDetail(product: widget.product, quantity: quantity.toString())];
+
+      // 3. Buat Objek Receipt
+      Receipt newReceipt = Receipt(
+        id: receiptRef.id,
+        userId: "user_123", // Ganti dengan ID User login asli nanti
+        productReceiptCollection: productsToBuy,
+        hampersReceiptCollection: [], // Kosongkan karena ini beli produk satuan
+        totalPrice:
+            currentTotalPrice.toString(), // Konversi int ke String sesuai model
+        isPaid: false, // Default belum bayar
+        requestReceiptAlreadyPaid: false,
+      );
+
+      // 4. Kirim ke Firestore (.set)
+      await receiptRef.set(newReceipt.toJson());
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            backgroundColor: Colors.green,
+            content: Text("Pesanan berhasil dibuat!"),
+            duration: Duration(seconds: 2),
+          ),
+        );
+
+        // Opsional: Pindah ke halaman pembayaran atau history
+        // Navigator.push(context, MaterialPageRoute(builder: (_) => PaymentPage()));
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            backgroundColor: Colors.red,
+            content: Text("Gagal membuat pesanan: $e"),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoadingCart = false;
+        });
+      }
+    }
   }
 
   @override
@@ -71,7 +200,8 @@ class _DetailProductPageState extends State<DetailProductPage> {
                       color: Colors.grey[300],
                       borderRadius: BorderRadius.circular(30),
                     ),
-                    child: const Icon(Icons.fastfood, size: 100, color: Colors.white),
+                    child: const Icon(Icons.fastfood,
+                        size: 100, color: Colors.white),
                   ),
 
                   Padding(
@@ -82,20 +212,24 @@ class _DetailProductPageState extends State<DetailProductPage> {
                         const Row(
                           children: [
                             Icon(Icons.star, color: Colors.orange, size: 20),
-                            Text(" 4.8", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                            Text(" 4.8",
+                                style: TextStyle(
+                                    fontWeight: FontWeight.bold, fontSize: 16)),
                           ],
                         ),
                         const SizedBox(height: 15),
                         // 3. Menampilkan Nama Produk secara Dinamis
                         Text(
                           widget.product.name,
-                          style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                          style: const TextStyle(
+                              fontSize: 24, fontWeight: FontWeight.bold),
                         ),
                         const SizedBox(height: 8),
                         // 4. Menampilkan Deskripsi Produk secara Dinamis
                         Text(
                           widget.product.description,
-                          style: const TextStyle(color: Colors.grey, fontSize: 14),
+                          style:
+                              const TextStyle(color: Colors.grey, fontSize: 14),
                         ),
                         const SizedBox(height: 15),
                         Row(
@@ -107,7 +241,9 @@ class _DetailProductPageState extends State<DetailProductPage> {
                                   fontWeight: FontWeight.bold,
                                   fontSize: 22),
                             ),
-                            const Text(".00", style: TextStyle(color: Colors.pink, fontSize: 14)),
+                            const Text(".00",
+                                style: TextStyle(
+                                    color: Colors.pink, fontSize: 14)),
                           ],
                         ),
                       ],
@@ -124,7 +260,7 @@ class _DetailProductPageState extends State<DetailProductPage> {
   }
 
   // ... (Metode _buildBottomAction, _qtyBtn, dan _buildButton tetap sama seperti sebelumnya)
-  
+
   Widget _buildBottomAction(BuildContext context, int currentTotalPrice) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 30),
@@ -143,7 +279,8 @@ class _DetailProductPageState extends State<DetailProductPage> {
             children: [
               Text(
                 "Rp\.$currentTotalPrice",
-                style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
+                style:
+                    const TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
               ),
               Container(
                 padding: const EdgeInsets.all(8),
@@ -156,7 +293,9 @@ class _DetailProductPageState extends State<DetailProductPage> {
                     _qtyBtn(Icons.remove, _decrementQuantity),
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 15),
-                      child: Text("$quantity", style: const TextStyle(color: Colors.white, fontSize: 18)),
+                      child: Text("$quantity",
+                          style: const TextStyle(
+                              color: Colors.white, fontSize: 18)),
                     ),
                     _qtyBtn(Icons.add, _incrementQuantity),
                   ],
@@ -167,9 +306,16 @@ class _DetailProductPageState extends State<DetailProductPage> {
           const SizedBox(height: 20),
           Row(
             children: [
-              Expanded(child: _buildButton("KERANJANG", Colors.pink, Colors.white)),
+              Expanded(
+                  child: _buildButton("KERANJANG", Colors.pink, Colors.white,
+                      onTap: () => _addToCart(currentTotalPrice),
+                      isLoading: _isLoadingCart)),
               const SizedBox(width: 15),
-              Expanded(child: _buildButton("BELI SEKARANG", Colors.pink, Colors.white)),
+              Expanded(
+                  child: _buildButton(
+                      "BELI SEKARANG", Colors.pink, Colors.white,
+                      onTap: () => _addToReceipt(currentTotalPrice, quantity),
+                      isLoading: _isLoadingBuyNow)),
             ],
           )
         ],
@@ -191,15 +337,38 @@ class _DetailProductPageState extends State<DetailProductPage> {
     );
   }
 
-  Widget _buildButton(String label, Color bgColor, Color textColor) {
+  // Widget _buildButton(String label, Color bgColor, Color textColor) {
+  //   return ElevatedButton(
+  //     onPressed: () {},
+  //     style: ElevatedButton.styleFrom(
+  //       backgroundColor: bgColor,
+  //       padding: const EdgeInsets.symmetric(vertical: 20),
+  //       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+  //     ),
+  //     child: Text(label,
+  //         style: TextStyle(color: textColor, fontWeight: FontWeight.bold)),
+  //   );
+  // }
+
+  // Update _buildButton agar menerima onTap dan isLoading
+  Widget _buildButton(String label, Color bgColor, Color textColor,
+      {required VoidCallback onTap, bool isLoading = false}) {
     return ElevatedButton(
-      onPressed: () {},
+      onPressed: isLoading ? null : onTap, // Disable jika loading
       style: ElevatedButton.styleFrom(
         backgroundColor: bgColor,
         padding: const EdgeInsets.symmetric(vertical: 20),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
       ),
-      child: Text(label, style: TextStyle(color: textColor, fontWeight: FontWeight.bold)),
+      child: isLoading
+          ? const SizedBox(
+              height: 20,
+              width: 20,
+              child: CircularProgressIndicator(
+                  color: Colors.white, strokeWidth: 2),
+            )
+          : Text(label,
+              style: TextStyle(color: textColor, fontWeight: FontWeight.bold)),
     );
   }
 }

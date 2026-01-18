@@ -4,10 +4,7 @@
 
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
-import 'package:pemprograman_mobile/attend/on_16/practice/_2/page/add_hampers.dart';
-import 'package:pemprograman_mobile/attend/on_16/practice/_2/page/customer_home_page.dart';
-import 'package:pemprograman_mobile/attend/on_16/practice/_2/page/register.dart';
-
+import 'package:pemprograman_mobile/attend/on_16/practice/_2/page/customer/customer_home.dart';
 
 import 'package:pemprograman_mobile/firebase_options.dart';
 
@@ -16,12 +13,14 @@ void main() async {
 
   runApp(MaterialApp(
       // home: const Homepage(),
-      // home: const CustomerHomePage(),
+      home: const CustomerHomePage(),
       // home: const DetailProductPageDummy(),
-      // home: const LoginPage(),
       // home: const RegisterPage(),
       // home: const AddProductPage(),
-      home: const AddHampersPage(),
+      // home: const AddHampersPage(),
+      // home: const AdminHomePage(),
+      // home: const ProfilePage(),
+      // home: const LoginPage(),
       theme: ThemeData(fontFamily: 'Sans-Serif'), // Sesuaikan font jika ada,
       debugShowCheckedModeBanner: false,
       color: Colors.white));
