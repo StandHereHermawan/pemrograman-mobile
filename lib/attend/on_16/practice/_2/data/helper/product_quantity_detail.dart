@@ -9,11 +9,22 @@ class ProductQuantityDetail {
     this.quantity = "0",
   });
 
+  @override
+  String toString() {
+    return "ProductQuantityDetail(product:$product, quantity: $quantity);";
+  }
+
   // Convert Data Cart ke JSON untuk dikirim ke Firestore
   Map<String, dynamic> toJson() {
     return {
       'product': product.toJson(),
       'quantity': quantity,
     };
+  }
+
+  factory ProductQuantityDetail.fromJson(Map<String, dynamic> jsonObject) {
+    return ProductQuantityDetail(
+        product: Product.fromJson(jsonObject['product']),
+        quantity: jsonObject['quantity']);
   }
 }

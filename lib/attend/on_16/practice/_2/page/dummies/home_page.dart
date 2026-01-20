@@ -9,7 +9,7 @@ import 'package:pemprograman_mobile/attend/on_16/practice/_2/styles/box_decorati
 
 import 'package:pemprograman_mobile/attend/on_16/practice/_2/styles/text_style_default.dart';
 import 'package:pemprograman_mobile/attend/on_16/practice/_2/styles/colors.dart';
-import 'package:pemprograman_mobile/attend/on_16/practice/_2/page/admin_auth.dart';
+import 'package:pemprograman_mobile/attend/on_16/practice/_2/page/dummies/admin_auth.dart';
 import 'package:pemprograman_mobile/attend/on_16/practice/_2/page/product_customer.dart';
 
 

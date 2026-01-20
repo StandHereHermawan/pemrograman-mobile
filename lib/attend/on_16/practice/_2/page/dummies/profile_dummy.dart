@@ -6,12 +6,12 @@ import 'package:pemprograman_mobile/attend/on_16/practice/_2/page/customer/custo
 import 'package:pemprograman_mobile/attend/on_16/practice/_2/page/login.dart';
 import 'package:pemprograman_mobile/attend/on_16/practice/_2/util/session_manager.dart';
 
-class ProfilePage extends StatelessWidget {
+class ProfilePageDummies extends StatelessWidget {
   // Data statis (bisa diganti data dari Firebase nantinya)
   final String username;
   final String role;
 
-  const ProfilePage({
+  const ProfilePageDummies({
     super.key,
     this.username = "Admin Zweet", // Default value
     this.role = "Administrator", // Default value

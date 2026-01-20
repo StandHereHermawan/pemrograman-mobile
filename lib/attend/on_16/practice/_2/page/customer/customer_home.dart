@@ -7,74 +7,91 @@ import 'package:pemprograman_mobile/attend/on_16/practice/_2/page/customer/custo
 import 'package:pemprograman_mobile/attend/on_16/practice/_2/page/customer/customer_finished_order.dart';
 import 'package:pemprograman_mobile/attend/on_16/practice/_2/page/customer/customer_receipt.dart';
 import 'package:pemprograman_mobile/attend/on_16/practice/_2/page/detail_product.dart';
-import 'package:pemprograman_mobile/attend/on_16/practice/_2/page/profile_dummy.dart';
+import 'package:pemprograman_mobile/attend/on_16/practice/_2/page/login.dart';
+import 'package:pemprograman_mobile/attend/on_16/practice/_2/user_interface_component/appbar.dart';
 import 'package:pemprograman_mobile/attend/on_16/practice/_2/user_interface_component/product_card_customer.dart';
+import 'package:pemprograman_mobile/attend/on_16/practice/_2/util/session_manager.dart';
 
 class CustomerHomePage extends StatelessWidget {
   const CustomerHomePage({super.key});
+// --- LOGIKA UTAMA CEK SESI ---
+  void _checkSession(BuildContext context) async {
+    // 1. Cek apakah ada data login di Shared Preferences
+    bool isLogin = await SessionManager.isUserLoggedIn();
+
+    if (!isLogin) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => LoginPage(key: key)),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    final dynamic appbar = AppBar(
-      backgroundColor: Colors.white,
-      elevation: 0,
-      centerTitle: true,
-      title: Container(
-        height: 45,
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(10),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withAlpha(20),
-              blurRadius: 10,
-              spreadRadius: 2,
-            )
-          ],
-        ),
-        // child: const TextField(1
-        //   decoration: InputDecoration(
-        //     hintText: 'Search',
-        //     prefixIcon: Icon(Icons.search, color: Colors.grey),
-        //     border: InputBorder.none,
-        //     contentPadding: EdgeInsets.symmetric(vertical: 10),
-        //   ),
-        // ),
-        child: Expanded(
-          child: Column(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Padding(
-                  padding: const EdgeInsets.all(8.0),
-                  child: Text(
-                    "Customer Home",
-                    style: TextStyle(color: Colors.grey),
-                  ),
-                ),
-              ]),
-        ),
-      ),
-      actions: [
-        Padding(
-          padding: const EdgeInsets.only(right: 16.0),
-          child: InkWell(
-              onTap: () {
-                Navigator.pushReplacement(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => ProfilePage(key: key),
-                  ),
-                );
-              },
-              borderRadius: BorderRadius.circular(30),
-              child: CircleAvatar(
-                backgroundColor: Colors.black.withAlpha(50),
-                child: Icon(Icons.person_rounded),
-              )),
-        )
-      ],
-    );
+    _checkSession(context);
+    final dynamic appbar = CustomAppBar(title: "Customer Home");
+    // Old
+    // final dynamic appbar = AppBar(
+    //   backgroundColor: Colors.white,
+    //   elevation: 0,
+    //   centerTitle: true,
+    //   title: Container(
+    //     height: 45,
+    //     decoration: BoxDecoration(
+    //       color: Colors.white,
+    //       borderRadius: BorderRadius.circular(10),
+    //       boxShadow: [
+    //         BoxShadow(
+    //           color: Colors.black.withAlpha(20),
+    //           blurRadius: 10,
+    //           spreadRadius: 2,
+    //         )
+    //       ],
+    //     ),
+    //     // child: const TextField(1
+    //     //   decoration: InputDecoration(
+    //     //     hintText: 'Search',
+    //     //     prefixIcon: Icon(Icons.search, color: Colors.grey),
+    //     //     border: InputBorder.none,
+    //     //     contentPadding: EdgeInsets.symmetric(vertical: 10),
+    //     //   ),
+    //     // ),
+    //     child: Expanded(
+    //       child: Column(
+    //           crossAxisAlignment: CrossAxisAlignment.center,
+    //           mainAxisAlignment: MainAxisAlignment.center,
+    //           children: [
+    //             Padding(
+    //               padding: const EdgeInsets.all(8.0),
+    //               child: Text(
+    //                 "Customer Home",
+    //                 style: TextStyle(color: Colors.grey),
+    //               ),
+    //             ),
+    //           ]),
+    //     ),
+    //   ),
+    //   actions: [
+    //     Padding(
+    //       padding: const EdgeInsets.only(right: 16.0),
+    //       child: InkWell(
+    //           onTap: () {
+    //             Navigator.pushReplacement(
+    //               context,
+    //               MaterialPageRoute(
+    //                 builder: (context) => ProfilePage(key: key),
+    //               ),
+    //             );
+    //           },
+    //           borderRadius: BorderRadius.circular(30),
+    //           child: CircleAvatar(
+    //             backgroundColor: Colors.black.withAlpha(50),
+    //             child: Icon(Icons.person_rounded),
+    //           )),
+    //     )
+    //   ],
+    // );
 
     final dynamic body = ListView(
       padding: const EdgeInsets.all(16.0),

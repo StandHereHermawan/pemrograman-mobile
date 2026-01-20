@@ -94,6 +94,52 @@ class _EditProductPageState extends State<EditProductPage> {
     }
   }
 
+  Future<void> _deleteProduct() async {
+    // Validasi sederhana
+    if (_nameController.text.isEmpty || _priceController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Nama dan Harga tidak boleh kosong")),
+      );
+      return;
+    }
+
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      // REFERENSI KE DOKUMEN SPESIFIK BERDASARKAN ID
+      await FirebaseFirestore.instance
+          .collection(Product
+              .collectionName) // Pastikan nama koleksi sesuai di database Anda
+          .doc(widget.product.id)
+          .delete();
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            backgroundColor: Colors.green,
+            content: Text("produk berhasil dihapus!"),duration: Duration(seconds: 10),
+          ),
+        );
+        Navigator.pop(context); // Kembali ke halaman sebelumnya
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+              backgroundColor: Colors.red, content: Text("Gagal update: $e")),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final PreferredSizeWidget appbar = AppBar(
@@ -111,7 +157,7 @@ class _EditProductPageState extends State<EditProductPage> {
             children: [
               IconButton(
                 icon: const Icon(Icons.delete, color: Colors.grey),
-                onPressed: () => {},
+                onPressed: _deleteProduct,
               ),
             ],
           ),

@@ -19,7 +19,7 @@ class SessionManager {
     await prefs.setBool(_keyIsLogin, true);
   }
 
-  static Future<String?> getUserId() async {
+  static Future<String?> getUserIdFuture() async {
     final prefs = await SharedPreferences.getInstance();
     return prefs.getString(_keyUserId);
   }

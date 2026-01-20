@@ -5,6 +5,9 @@ import 'package:pemprograman_mobile/attend/on_16/practice/_2/data/helper/product
 import 'package:pemprograman_mobile/attend/on_16/practice/_2/data/helper/product_quantity_detail.dart';
 import 'package:pemprograman_mobile/attend/on_16/practice/_2/data/product.dart';
 import 'package:pemprograman_mobile/attend/on_16/practice/_2/data/receipt.dart';
+import 'package:pemprograman_mobile/attend/on_16/practice/_2/page/login.dart';
+import 'package:pemprograman_mobile/attend/on_16/practice/_2/user_interface_component/appbar.dart';
+import 'package:pemprograman_mobile/attend/on_16/practice/_2/util/session_manager.dart';
 // import 'package:pemprograman_mobile/attend/on_16/practice/_2/util/session_manager.dart';
 
 // 1. Tambahkan parameter Product pada Constructor
@@ -21,6 +24,7 @@ class DetailProductPage extends StatefulWidget {
 }
 
 class _DetailProductPageState extends State<DetailProductPage> {
+  String? userId;
   int quantity = 1;
   bool _isLoadingCart = false; // Untuk indikator loading tombol
   bool _isLoadingBuyNow = false; // Untuk indikator loading tombol
@@ -39,8 +43,55 @@ class _DetailProductPageState extends State<DetailProductPage> {
     });
   }
 
+  @override
+  void dispose() {
+    // Jangan lupa dispose controller agar memori tidak bocor
+    super.dispose();
+  }
+
+  // --- LOGIKA UTAMA CEK SESI ---
+  Future<void> _checkSession() async {
+    // 1. Cek Login Status
+    bool isLogin = await SessionManager.isUserLoggedIn();
+
+    if (!mounted) return; // Cek apakah widget masih ada
+
+    if (!isLogin) {
+      _redirectToLogin();
+      return;
+    }
+
+    // 2. Ambil User ID
+    String? id = await SessionManager.getUserIdFuture();
+
+    if (!mounted) return;
+
+    if (id == null || id.isEmpty) {
+      _redirectToLogin();
+    } else {
+      // 3. Simpan ke State dan Re-build UI
+      setState(() {
+        userId = id;
+      });
+    }
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _checkSession();
+  }
+
+  void _redirectToLogin() {
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (context) => const LoginPage()),
+    );
+  }
+
   // --- LOGIC ADD TO CART ---
   Future<void> _addToCart(int currentTotalPrice) async {
+
     setState(() {
       _isLoadingCart = true;
     });
@@ -60,7 +111,7 @@ class _DetailProductPageState extends State<DetailProductPage> {
       // 3. Siapkan Objek Cart (Bungkus item tadi ke dalam Cart)
       Cart newCart = Cart(
         id: cartRef.id, // Pakai ID dari referensi di atas
-        userId: "user_123", // Ganti dengan ID User login nanti
+        userId: userId ?? "", // Ganti dengan ID User login nanti
         productCollection: [item], // Masukkan item ke dalam list
         createdAt: DateTime.now().toString(),
         cartType: "product",
@@ -100,6 +151,7 @@ class _DetailProductPageState extends State<DetailProductPage> {
   // --- LOGIC ADD TO RECEIPT ---
   // --- LOGIC BELI SEKARANG (CREATE RECEIPT) ---
   Future<void> _addToReceipt(int currentTotalPrice, int quantity) async {
+
     setState(() {
       _isLoadingBuyNow = true;
     });
@@ -113,17 +165,21 @@ class _DetailProductPageState extends State<DetailProductPage> {
       // Karena struktur Receipt meminta List<Product>, kita bungkus produk saat ini ke dalam List.
       // Catatan: Karena model Product tidak menyimpan quantity,
       // kita hanya menyimpan info produknya dan total harga akhirnya.
-      List<ProductQuantityDetail> productsToBuy = [ProductQuantityDetail(product: widget.product, quantity: quantity.toString())];
+      List<ProductQuantityDetail> productsToBuy = [
+        ProductQuantityDetail(
+            product: widget.product, quantity: quantity.toString())
+      ];
 
       // 3. Buat Objek Receipt
       Receipt newReceipt = Receipt(
         id: receiptRef.id,
-        userId: "user_123", // Ganti dengan ID User login asli nanti
+        userId: userId ?? "", // Ganti dengan ID User login asli nanti
         productReceiptCollection: productsToBuy,
         hampersReceiptCollection: [], // Kosongkan karena ini beli produk satuan
         totalPrice:
             currentTotalPrice.toString(), // Konversi int ke String sesuai model
         isPaid: false, // Default belum bayar
+        createdAt: DateTime.now().toString(),
         requestReceiptAlreadyPaid: false,
       );
 
@@ -154,7 +210,7 @@ class _DetailProductPageState extends State<DetailProductPage> {
     } finally {
       if (mounted) {
         setState(() {
-          _isLoadingCart = false;
+          _isLoadingBuyNow = false;
         });
       }
     }
@@ -168,22 +224,8 @@ class _DetailProductPageState extends State<DetailProductPage> {
 
     return Scaffold(
       backgroundColor: Colors.white,
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new, color: Colors.black),
-          onPressed: () => Navigator.pop(context),
-        ),
-        actions: const [
-          Padding(
-            padding: EdgeInsets.only(right: 16.0),
-            child: CircleAvatar(
-              backgroundImage: NetworkImage('https://via.placeholder.com/150'),
-            ),
-          )
-        ],
-      ),
+      appBar: CustomAppBar(title: "Detail Product"),
+      
       body: Column(
         children: [
           Expanded(
@@ -337,20 +379,6 @@ class _DetailProductPageState extends State<DetailProductPage> {
     );
   }
 
-  // Widget _buildButton(String label, Color bgColor, Color textColor) {
-  //   return ElevatedButton(
-  //     onPressed: () {},
-  //     style: ElevatedButton.styleFrom(
-  //       backgroundColor: bgColor,
-  //       padding: const EdgeInsets.symmetric(vertical: 20),
-  //       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-  //     ),
-  //     child: Text(label,
-  //         style: TextStyle(color: textColor, fontWeight: FontWeight.bold)),
-  //   );
-  // }
-
-  // Update _buildButton agar menerima onTap dan isLoading
   Widget _buildButton(String label, Color bgColor, Color textColor,
       {required VoidCallback onTap, bool isLoading = false}) {
     return ElevatedButton(

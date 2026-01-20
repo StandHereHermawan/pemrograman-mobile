@@ -4,9 +4,12 @@ import 'package:pemprograman_mobile/attend/on_16/practice/_2/data/hampers.dart';
 import 'package:pemprograman_mobile/attend/on_16/practice/_2/data/product.dart';
 import 'package:pemprograman_mobile/attend/on_16/practice/_2/page/admin/add_hampers.dart';
 import 'package:pemprograman_mobile/attend/on_16/practice/_2/page/admin/add_product.dart';
+import 'package:pemprograman_mobile/attend/on_16/practice/_2/page/admin/admin_delivery.dart';
+import 'package:pemprograman_mobile/attend/on_16/practice/_2/page/admin/admin_finished_order.dart';
+import 'package:pemprograman_mobile/attend/on_16/practice/_2/page/admin/admin_receipt.dart';
 import 'package:pemprograman_mobile/attend/on_16/practice/_2/page/detail_product.dart';
 import 'package:pemprograman_mobile/attend/on_16/practice/_2/page/admin/edit_product.dart';
-import 'package:pemprograman_mobile/attend/on_16/practice/_2/page/profile_dummy.dart';
+import 'package:pemprograman_mobile/attend/on_16/practice/_2/user_interface_component/appbar.dart';
 import 'package:pemprograman_mobile/attend/on_16/practice/_2/user_interface_component/product_card_admin.dart';
 
 class AdminHomePage extends StatelessWidget {
@@ -14,57 +17,9 @@ class AdminHomePage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final dynamic appbar = AppBar(
-      backgroundColor: Colors.white,
-      elevation: 0,
-      centerTitle: true,
-      title: Container(
-        height: 45,
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(10),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withAlpha(20),
-              blurRadius: 10,
-              spreadRadius: 2,
-            )
-          ],
-        ),
-        child: Expanded(
-          child: Column(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Padding(
-                  padding: const EdgeInsets.all(8.0),
-                  child: Text(
-                    "Admin Home",
-                    style: TextStyle(color: Colors.grey),
-                  ),
-                ),
-              ]),
-        ),
-      ),
-      actions: [
-        Padding(
-          padding: const EdgeInsets.only(right: 16.0),
-          child: InkWell(
-              onTap: () {
-                Navigator.pushReplacement(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => ProfilePage(key: key),
-                  ),
-                );
-              },
-              borderRadius: BorderRadius.circular(30),
-              child: CircleAvatar(
-                backgroundColor: Colors.black.withAlpha(50),
-                child: Icon(Icons.person_rounded),
-              )),
-        )
-      ],
+    final dynamic appbar = CustomAppBar(
+      title: "Admin Home",
+      key: key,
     );
 
     final dynamic body = ListView(
@@ -85,11 +40,10 @@ class AdminHomePage extends StatelessWidget {
           child: StreamBuilder<QuerySnapshot>(
             // 1. Query ke Firestore
             stream: FirebaseFirestore.instance
-                .collection(Hampers.collectionName)
+                .collection(Product.collectionName)
                 .orderBy('created_at',
                     descending:
                         true) // Urutkan dari yang terbaru (Z-A / Waktu besar ke kecil)
-                .limit(5) // Batasi hanya 5 dokumen
                 .snapshots(),
             builder: (context, snapshot) {
               // A. Jika sedang loading
@@ -210,7 +164,7 @@ class AdminHomePage extends StatelessWidget {
       backgroundColor: Colors.white,
       appBar: appbar,
       body: body,
-      bottomNavigationBar: _buildBottomNav(),
+      bottomNavigationBar: _buildBottomNav(context),
     );
   }
 
@@ -305,7 +259,7 @@ class AdminHomePage extends StatelessWidget {
     );
   }
 
-  Widget _buildBottomNav() {
+  Widget _buildBottomNav(context) {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 10),
       decoration: BoxDecoration(
@@ -317,10 +271,39 @@ class AdminHomePage extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
-          _navItem(Icons.home, "Admin", true),
-          _navItem(Icons.point_of_sale, "To Paid", false, badge: "0"),
-          _navItem(Icons.delivery_dining, "To Deliver", false, badge: "0"),
-          _navItem(Icons.check_circle, "Finished", false),
+          _navItem(Icons.home, "Home", true, onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => AdminHomePage(key: key),
+              ),
+            );
+          }),
+          _navItem(Icons.point_of_sale, "To Paid", false, badge: "0",
+              onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => AdminReceiptPage(key: key),
+              ),
+            );
+          }),
+          _navItem(Icons.delivery_dining, "To Deliver", false, onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => AdminDeliveryPage(key: key),
+              ),
+            );
+          }, badge: "0"),
+          _navItem(Icons.check_circle, "Finished", false, onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => AdminFinishedOrderPage(key: key),
+              ),
+            );
+          }),
         ],
       ),
     );

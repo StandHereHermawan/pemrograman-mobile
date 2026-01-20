@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:pemprograman_mobile/attend/on_16/practice/_2/data/product.dart';
 import 'package:pemprograman_mobile/attend/on_16/practice/_2/styles/text_style_default.dart';
-import 'package:pemprograman_mobile/attend/on_16/practice/_2/user_interface_component/product_card_dummy.dart';
+import 'package:pemprograman_mobile/attend/on_16/practice/_2/user_interface_component/dummies/product_card_dummy.dart';
 
 class WidgetProductListDummy extends StatelessWidget {
   const WidgetProductListDummy({super.key});

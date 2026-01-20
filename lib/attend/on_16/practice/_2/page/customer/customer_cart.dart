@@ -1,133 +1,252 @@
+import 'dart:developer';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
-import 'package:pemprograman_mobile/attend/on_16/practice/_2/data/hampers.dart';
+import 'package:pemprograman_mobile/attend/on_16/practice/_2/data/helper/product_quantity.dart';
+import 'package:pemprograman_mobile/attend/on_16/practice/_2/data/helper/product_quantity_detail.dart';
 import 'package:pemprograman_mobile/attend/on_16/practice/_2/data/product.dart';
+import 'package:pemprograman_mobile/attend/on_16/practice/_2/data/cart.dart';
+import 'package:pemprograman_mobile/attend/on_16/practice/_2/data/receipt.dart';
 import 'package:pemprograman_mobile/attend/on_16/practice/_2/page/customer/customer_delivery.dart';
 import 'package:pemprograman_mobile/attend/on_16/practice/_2/page/customer/customer_finished_order.dart';
 import 'package:pemprograman_mobile/attend/on_16/practice/_2/page/customer/customer_home.dart';
 import 'package:pemprograman_mobile/attend/on_16/practice/_2/page/customer/customer_receipt.dart';
 import 'package:pemprograman_mobile/attend/on_16/practice/_2/page/detail_product.dart';
-import 'package:pemprograman_mobile/attend/on_16/practice/_2/page/profile_dummy.dart';
+import 'package:pemprograman_mobile/attend/on_16/practice/_2/page/login.dart';
+import 'package:pemprograman_mobile/attend/on_16/practice/_2/user_interface_component/appbar.dart';
+import 'package:pemprograman_mobile/attend/on_16/practice/_2/user_interface_component/cart_card.dart';
 import 'package:pemprograman_mobile/attend/on_16/practice/_2/user_interface_component/product_card_customer.dart';
+import 'package:pemprograman_mobile/attend/on_16/practice/_2/util/session_manager.dart';
 
-class CustomerCartPage extends StatelessWidget {
+class CustomerCartPage extends StatefulWidget {
   const CustomerCartPage({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    final dynamic appbar = AppBar(
-      backgroundColor: Colors.white,
-      elevation: 0,
-      centerTitle: true,
-      leading: IconButton(
-        icon: const Icon(Icons.arrow_back_ios_new, color: Colors.grey),
-        onPressed: () => Navigator.pop(context),
-      ),
-      title: Container(
-        height: 45,
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(10),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withAlpha(20),
-              blurRadius: 10,
-              spreadRadius: 2,
-            )
-          ],
-        ),
-        child: Expanded(
-          child: Column(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Padding(
-                  padding: const EdgeInsets.all(8.0),
-                  child: Text(
-                    "Customer Cart",
-                    style: TextStyle(color: Colors.grey),
-                  ),
-                ),
-              ]),
-        ),
-      ),
-      actions: [
-        Padding(
-          padding: const EdgeInsets.only(right: 16.0),
-          child: InkWell(
-              onTap: () {
-                Navigator.pushReplacement(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => ProfilePage(key: key),
-                  ),
-                );
-              },
-              borderRadius: BorderRadius.circular(30),
-              child: CircleAvatar(
-                backgroundColor: Colors.black.withAlpha(50),
-                child: Icon(Icons.person_rounded),
-              )),
-        )
-      ],
+  State<CustomerCartPage> createState() => _CustomerCartPageState();
+}
+
+class _CustomerCartPageState extends State<CustomerCartPage> {
+  // Variable State
+  String? userId;
+  bool isLoading = true; // Indikator loading saat ambil sesi
+
+  @override
+  void initState() {
+    super.initState();
+    _checkSession();
+  }
+
+  @override
+  void dispose() {
+    // Jangan lupa dispose controller agar memori tidak bocor
+    super.dispose();
+  }
+
+  // --- LOGIKA UTAMA CEK SESI ---
+  Future<void> _checkSession() async {
+    // 1. Cek Login Status
+    bool isLogin = await SessionManager.isUserLoggedIn();
+
+    if (!mounted) return; // Cek apakah widget masih ada
+
+    if (!isLogin) {
+      _redirectToLogin();
+      return;
+    }
+
+    // 2. Ambil User ID
+    String? id = await SessionManager.getUserIdFuture();
+
+    if (!mounted) return;
+
+    if (id == null || id.isEmpty) {
+      _redirectToLogin();
+    } else {
+      // 3. Simpan ke State dan Re-build UI
+      setState(() {
+        userId = id;
+        isLoading = false; // Loading selesai
+      });
+    }
+  }
+
+  void _redirectToLogin() {
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (context) => const LoginPage()),
     );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    // Tampilkan Loading Screen jika userId belum didapat
+    if (isLoading) {
+      return const Scaffold(
+        backgroundColor: Colors.white,
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    // --- UI UTAMA SETELAH USER ID DIDAPAT ---
+
+    final dynamic appbar = CustomAppBar(title: "Customer Cart");
 
     final dynamic body = ListView(
       padding: const EdgeInsets.all(16.0),
       children: [
-        // Section Kue
+        // --- Section Kue (Product) ---
         _buildSectionHeader("Kue"),
         const SizedBox(height: 10),
         SizedBox(
-          height: 240,
+          height: 480,
           child: StreamBuilder<QuerySnapshot>(
-            // 1. Query ke Firestore
             stream: FirebaseFirestore.instance
-                .collection(Hampers.collectionName)
-                .orderBy('created_at',
-                    descending:
-                        true) // Urutkan dari yang terbaru (Z-A / Waktu besar ke kecil)
-                .limit(5) // Batasi hanya 5 dokumen
+                .collection(Cart.collectionName)
+                .where('cart_type', isEqualTo: "product")
+                .where('user_id',
+                    isEqualTo: userId) // Menggunakan userId dari state
                 .snapshots(),
             builder: (context, snapshot) {
-              // A. Jika sedang loading
               if (snapshot.connectionState == ConnectionState.waiting) {
                 return const Center(child: CircularProgressIndicator());
               }
 
-              // B. Jika ada Error
               if (snapshot.hasError) {
+                log(snapshot.error.toString());
                 return const Center(child: Text("Terjadi kesalahan"));
               }
 
-              // C. Jika Data Kosong
               if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
                 return const Center(child: Text("Belum ada produk"));
               }
 
-              // D. Jika Data Ada
               final documents = snapshot.data!.docs;
 
               return ListView.builder(
-                scrollDirection: Axis.horizontal,
+                scrollDirection: Axis.vertical,
                 itemCount: documents.length,
                 physics: const AlwaysScrollableScrollPhysics(),
                 itemBuilder: (context, index) {
-                  // Ambil data per dokumen
                   final data = documents[index].data() as Map<String, dynamic>;
-                  return ProductCardCustomer(
-                      onTap: () {
-                        // Contoh penggunaan di halaman Home
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => DetailProductPage(
-                              product: Product.fromJson(data),
-                            ),
-                          ),
+                  log(data.toString());
+                  return CartCard(
+                    onTap: () {
+                      // Logic onTap
+                    },
+                    onDelete: () async {
+                      FirebaseFirestore.instance
+                          .collection(Cart.collectionName) // Nama Collection
+                          .doc(Cart.fromJson(data).id) // ID Dokumen Spesifik
+                          .delete();
+                      // Tambahkan logika hapus di sini
+                    },
+                    onPaid: () async {
+                      try {
+                        List<ProductQuantityDetail> productsToBuy =
+                            <ProductQuantityDetail>[];
+
+                        DocumentReference receiptRef = FirebaseFirestore
+                            .instance
+                            .collection(Receipt.collectionName)
+                            .doc(); // 1. Buat Referensi Dokumen Baru di Collection 'receipts'
+
+                        // 2. Siapkan Data
+                        // Karena struktur Receipt meminta List<Product>, kita bungkus produk saat ini ke dalam List.
+                        // Catatan: Karena model Product tidak menyimpan quantity,
+                        // kita hanya menyimpan info produknya dan total harga akhirnya.
+                        int? currentTotalPrice = 0;
+                        int? quantity = 0;
+
+                        // --- PERBAIKAN DI SINI ---
+                        // Jangan pakai .forEach, pakai variabel penampung dulu lalu loop manual
+                        List<ProductQuantity> itemsInCart =
+                            Cart.fromJson(data).productCollection;
+
+                        for (ProductQuantity productQuantity in itemsInCart) {
+                          // 1. Ambil data produk dari Firestore (Ditunggu sampai selesai)
+                          DocumentSnapshot docSnapshot = await FirebaseFirestore
+                              .instance
+                              .collection(Product.collectionName)
+                              .doc(productQuantity.productId)
+                              .get();
+
+                          if (docSnapshot.exists) {
+                            Map<String, dynamic> jsonObject =
+                                docSnapshot.data() as Map<String, dynamic>;
+
+                            Product product = Product.fromJson(jsonObject);
+
+                            // 2. Masukkan ke list lokal
+                            productsToBuy.add(ProductQuantityDetail(
+                                product: product,
+                                quantity: productQuantity.quantity));
+
+                            log("Products to buy block .for in : ${productsToBuy.toString()}");
+                            log("Product to be receipt block .for in: ${product.toString()}");
+
+                            currentTotalPrice = (currentTotalPrice! +
+                                product.price *
+                                    int.parse(productQuantity.quantity));
+                            log("Current price in block .for in : ${currentTotalPrice.toString()}");
+
+                            quantity = (quantity! +
+                                int.parse(productQuantity.quantity));
+                            log("Current quantity in block .for in : ${quantity.toString()}");
+
+                            log("Berhasil ambil: ${product.name} - Harga sementara: $currentTotalPrice");
+                          }
+                        }
+                        // -------------------------
+
+                        log("Products to buy block anonymous: ${productsToBuy.toString()}");
+                        log("Current quantity in block anonymous : ${quantity.toString()}");
+
+                        // 3. Buat Objek Receipt
+                        Receipt newReceipt = Receipt(
+                          id: receiptRef.id,
+                          userId: userId ??
+                              "", // Ganti dengan ID User login asli nanti
+                          productReceiptCollection: productsToBuy,
+                          hampersReceiptCollection: [], // Kosongkan karena ini beli produk satuan
+                          totalPrice: currentTotalPrice
+                              .toString(), // Konversi int ke String sesuai model
+                          isPaid: false, // Default belum bayar
+                          createdAt: DateTime.now().toString(),
+                          requestReceiptAlreadyPaid: false,
                         );
-                      },
-                      product: Product.fromJson(data));
+                        log("New receipt: ${newReceipt.toString()}");
+
+                        // 4. Kirim ke Firestore (.set)
+                        receiptRef.set(newReceipt.toJson());
+
+                        if (mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              backgroundColor: Colors.green,
+                              content: Text("Pesanan berhasil dibuat!"),
+                              duration: Duration(seconds: 3),
+                            ),
+                          );
+
+                          // Opsional: Pindah ke halaman pembayaran atau history
+                          // Navigator.pushReplacement(
+                          //     context,
+                          //     MaterialPageRoute(
+                          //         builder: (_) => CustomerReceiptPage()));
+                        }
+                      } catch (e) {
+                        if (mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              backgroundColor: Colors.red,
+                              content: Text("Gagal membuat pesanan: $e"),
+                            ),
+                          );
+                        }
+                      } finally {}
+                      // Tambahkan logika bayar di sini
+                    },
+                    cart: Cart.fromJson(data),
+                  );
                 },
               );
             },
@@ -135,36 +254,32 @@ class CustomerCartPage extends StatelessWidget {
         ),
         const SizedBox(height: 10),
 
+        // --- Section Hampers ---
         _buildSectionHeader("Hampers"),
         const SizedBox(height: 10),
         SizedBox(
           height: 240,
           child: StreamBuilder<QuerySnapshot>(
-            // 1. Query ke Firestore
             stream: FirebaseFirestore.instance
-                .collection(Hampers.collectionName)
-                .orderBy('created_at',
-                    descending:
-                        true) // Urutkan dari yang terbaru (Z-A / Waktu besar ke kecil)
-                .limit(5) // Batasi hanya 5 dokumen
+                .collection(Cart.collectionName)
+                .where('cart_type', isEqualTo: "hampers")
+                .where('user_id',
+                    isEqualTo: userId) // Menggunakan userId dari state
                 .snapshots(),
             builder: (context, snapshot) {
-              // A. Jika sedang loading
               if (snapshot.connectionState == ConnectionState.waiting) {
                 return const Center(child: CircularProgressIndicator());
               }
 
-              // B. Jika ada Error
               if (snapshot.hasError) {
                 return const Center(child: Text("Terjadi kesalahan"));
               }
 
-              // C. Jika Data Kosong
               if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-                return const Center(child: Text("Belum ada produk"));
+                return const Center(
+                    child: Text("Belum ada Keranjang isi Hampers"));
               }
 
-              // D. Jika Data Ada
               final documents = snapshot.data!.docs;
 
               return ListView.builder(
@@ -172,21 +287,21 @@ class CustomerCartPage extends StatelessWidget {
                 itemCount: documents.length,
                 physics: const AlwaysScrollableScrollPhysics(),
                 itemBuilder: (context, index) {
-                  // Ambil data per dokumen
                   final data = documents[index].data() as Map<String, dynamic>;
+                  // Note: Pastikan model Hampers/Product sesuai dengan CartType
                   return ProductCardCustomer(
-                      onTap: () {
-                        // Contoh penggunaan di halaman Home
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => DetailProductPage(
-                              product: Product.fromJson(data),
-                            ),
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => DetailProductPage(
+                            product: Product.fromJson(data),
                           ),
-                        );
-                      },
-                      product: Product.fromJson(data));
+                        ),
+                      );
+                    },
+                    product: Product.fromJson(data),
+                  );
                 },
               );
             },
@@ -215,7 +330,7 @@ class CustomerCartPage extends StatelessWidget {
     );
   }
 
-  Widget _buildBottomNav(context) {
+  Widget _buildBottomNav(BuildContext context) {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 10),
       decoration: BoxDecoration(
@@ -231,7 +346,7 @@ class CustomerCartPage extends StatelessWidget {
             Navigator.pushReplacement(
               context,
               MaterialPageRoute(
-                builder: (context) => CustomerHomePage(key: key),
+                builder: (context) => CustomerHomePage(key: widget.key),
               ),
             );
           }),
@@ -242,7 +357,7 @@ class CustomerCartPage extends StatelessWidget {
             Navigator.pushReplacement(
               context,
               MaterialPageRoute(
-                builder: (context) => CustomerReceiptPage(key: key),
+                builder: (context) => CustomerReceiptPage(key: widget.key),
               ),
             );
           }),
@@ -251,7 +366,7 @@ class CustomerCartPage extends StatelessWidget {
             Navigator.pushReplacement(
               context,
               MaterialPageRoute(
-                builder: (context) => CustomerDeliveryPage(key: key),
+                builder: (context) => CustomerDeliveryPage(key: widget.key),
               ),
             );
           }),
@@ -259,7 +374,8 @@ class CustomerCartPage extends StatelessWidget {
             Navigator.pushReplacement(
               context,
               MaterialPageRoute(
-                builder: (context) => CustomerFinishedOrderPage(key: key),
+                builder: (context) =>
+                    CustomerFinishedOrderPage(key: widget.key),
               ),
             );
           }),
@@ -269,7 +385,7 @@ class CustomerCartPage extends StatelessWidget {
   }
 
   Widget _navItem(IconData icon, String label, bool isActive,
-      {String? badge, onTap}) {
+      {String? badge, VoidCallback? onTap}) {
     return InkWell(
       borderRadius: BorderRadius.circular(30),
       onTap: onTap,

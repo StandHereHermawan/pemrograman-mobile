@@ -14,4 +14,18 @@ class ProductQuantity {
       'quantity': quantity,
     };
   }
+
+  factory ProductQuantity.fromJson(Map<String, dynamic> json) {
+    return ProductQuantity(
+      productId: json['product_id'] as String? ?? "0",
+      // Menggunakan .toString() agar aman jika Firestore mengembalikan Int (angka)
+      quantity: (json['quantity'] ?? "0").toString(), 
+    );
+  }
+
+  // Tambahkan ini di file product_quantity.dart Anda
+  @override
+  String toString() {
+    return '{id: $productId, qty: $quantity}';
+  }
 }

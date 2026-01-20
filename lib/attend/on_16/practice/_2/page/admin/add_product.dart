@@ -17,7 +17,6 @@ class _AddProductPageState extends State<AddProductPage> {
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _descController = TextEditingController();
   final TextEditingController _priceController = TextEditingController();
-
   bool _isLoading = false;
 
   @override

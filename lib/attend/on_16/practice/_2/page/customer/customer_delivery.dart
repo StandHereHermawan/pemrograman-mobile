@@ -1,93 +1,186 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
-import 'package:pemprograman_mobile/attend/on_16/practice/_2/data/hampers.dart';
-import 'package:pemprograman_mobile/attend/on_16/practice/_2/data/product.dart';
+import 'package:pemprograman_mobile/attend/on_16/practice/_2/data/delivery.dart';
 import 'package:pemprograman_mobile/attend/on_16/practice/_2/page/customer/customer_cart.dart';
 import 'package:pemprograman_mobile/attend/on_16/practice/_2/page/customer/customer_finished_order.dart';
 import 'package:pemprograman_mobile/attend/on_16/practice/_2/page/customer/customer_home.dart';
 import 'package:pemprograman_mobile/attend/on_16/practice/_2/page/customer/customer_receipt.dart';
-import 'package:pemprograman_mobile/attend/on_16/practice/_2/page/detail_product.dart';
-import 'package:pemprograman_mobile/attend/on_16/practice/_2/page/profile_dummy.dart';
-import 'package:pemprograman_mobile/attend/on_16/practice/_2/user_interface_component/product_card_customer.dart';
+import 'package:pemprograman_mobile/attend/on_16/practice/_2/page/login.dart';
+import 'package:pemprograman_mobile/attend/on_16/practice/_2/user_interface_component/appbar.dart';
+import 'package:pemprograman_mobile/attend/on_16/practice/_2/user_interface_component/deliveries_card_customer.dart';
+import 'package:pemprograman_mobile/attend/on_16/practice/_2/util/session_manager.dart';
 
-class CustomerDeliveryPage extends StatelessWidget {
+class CustomerDeliveryPage extends StatefulWidget {
   const CustomerDeliveryPage({super.key});
 
   @override
+  State<StatefulWidget> createState() {
+    return _CustomerDeliveryPageState();
+  }
+}
+
+class _CustomerDeliveryPageState extends State<CustomerDeliveryPage> {
+  String? userId;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkSession(context);
+  }
+
+  @override
+  void dispose() {
+    // Jangan lupa dispose controller agar memori tidak bocor
+    super.dispose();
+  }
+
+// --- LOGIKA UTAMA CEK SESI ---
+  void _checkSession(BuildContext context) async {
+    // 1. Cek apakah ada data login di Shared Preferences
+    bool isLogin = await SessionManager.isUserLoggedIn();
+
+    if (!isLogin) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => LoginPage()),
+      );
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final dynamic appbar = AppBar(
-      backgroundColor: Colors.white,
-      elevation: 0,
-      centerTitle: true,
-      leading: IconButton(
-        icon: const Icon(Icons.arrow_back_ios_new, color: Colors.grey),
-        onPressed: () => Navigator.pop(context),
-      ),
-      title: Container(
-        height: 45,
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(10),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withAlpha(20),
-              blurRadius: 10,
-              spreadRadius: 2,
-            )
-          ],
-        ),
-        child: Expanded(
-          child: Column(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Padding(
-                  padding: const EdgeInsets.all(8.0),
-                  child: Text(
-                    "Customer Delivery",
-                    style: TextStyle(color: Colors.grey),
-                  ),
-                ),
-              ]),
-        ),
-      ),
-      actions: [
-        Padding(
-          padding: const EdgeInsets.only(right: 16.0),
-          child: InkWell(
-              onTap: () {
-                Navigator.pushReplacement(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => ProfilePage(key: key),
-                  ),
-                );
-              },
-              borderRadius: BorderRadius.circular(30),
-              child: CircleAvatar(
-                backgroundColor: Colors.black.withAlpha(50),
-                child: Icon(Icons.person_rounded),
-              )),
-        )
-      ],
-    );
+    final dynamic appbar = CustomAppBar(title: "Customer Delivery");
+    // Old
+    // final dynamic appbar = AppBar(
+    //   backgroundColor: Colors.white,
+    //   elevation: 0,
+    //   centerTitle: true,
+    //   leading: IconButton(
+    //     icon: const Icon(Icons.arrow_back_ios_new, color: Colors.grey),
+    //     onPressed: () => Navigator.pop(context),
+    //   ),
+    //   title: Container(
+    //     height: 45,
+    //     decoration: BoxDecoration(
+    //       color: Colors.white,
+    //       borderRadius: BorderRadius.circular(10),
+    //       boxShadow: [
+    //         BoxShadow(
+    //           color: Colors.black.withAlpha(20),
+    //           blurRadius: 10,
+    //           spreadRadius: 2,
+    //         )
+    //       ],
+    //     ),
+    //     child: Expanded(
+    //       child: Column(
+    //           crossAxisAlignment: CrossAxisAlignment.center,
+    //           mainAxisAlignment: MainAxisAlignment.center,
+    //           children: [
+    //             Padding(
+    //               padding: const EdgeInsets.all(8.0),
+    //               child: Text(
+    //                 "Customer Delivery",
+    //                 style: TextStyle(color: Colors.grey),
+    //               ),
+    //             ),
+    //           ]),
+    //     ),
+    //   ),
+    //   actions: [
+    //     Padding(
+    //       padding: const EdgeInsets.only(right: 16.0),
+    //       child: InkWell(
+    //           onTap: () {
+    //             Navigator.pushReplacement(
+    //               context,
+    //               MaterialPageRoute(
+    //                 builder: (context) => ProfilePageDummies(key: key),
+    //               ),
+    //             );
+    //           },
+    //           borderRadius: BorderRadius.circular(30),
+    //           child: CircleAvatar(
+    //             backgroundColor: Colors.black.withAlpha(50),
+    //             child: Icon(Icons.person_rounded),
+    //           )),
+    //     )
+    //   ],
+    // );
 
     final dynamic body = ListView(
       padding: const EdgeInsets.all(16.0),
       children: [
+        _buildSectionHeader("Dalam Pengemasan"),
+        const SizedBox(height: 10),
+        SizedBox(
+          height: 240,
+          child: StreamBuilder<QuerySnapshot>(
+            // 1. Query ke Firestore
+            stream: FirebaseFirestore.instance
+                .collection(Deliveries.collectionName)
+                .where('is_on_delivery', isEqualTo: false)
+                .where('is_received', isEqualTo: false)
+                .where('user_id', isEqualTo: userId)
+                .snapshots(),
+            builder: (context, snapshot) {
+              // A. Jika sedang loading
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Center(child: CircularProgressIndicator());
+              }
+
+              // B. Jika ada Error
+              if (snapshot.hasError) {
+                return const Center(child: Text("Terjadi kesalahan"));
+              }
+
+              // C. Jika Data Kosong
+              if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                return const Center(child: Text("Belum ada produk"));
+              }
+
+              // D. Jika Data Ada
+              final documents = snapshot.data!.docs;
+
+              return ListView.builder(
+                scrollDirection: Axis.vertical,
+                itemCount: documents.length,
+                physics: const AlwaysScrollableScrollPhysics(),
+                itemBuilder: (context, index) {
+                  // Ambil data per dokumen
+                  final data = documents[index].data() as Map<String, dynamic>;
+                  return DeliveryCustomerCard(
+                      onTap: () {
+                        // 
+                        // Contoh penggunaan di halaman Home
+                        // Navigator.push(
+                        //   context,
+                        //   MaterialPageRoute(
+                        //     builder: (context) => DetailProductPage(
+                        //       product: Product.fromJson(data),
+                        //     ),
+                        //   ),
+                        // );
+                      },
+                      delivery: Deliveries.fromJson(data));
+                },
+              );
+            },
+          ),
+        ),
+
         // Section Kue
-        _buildSectionHeader("Kue"),
+        _buildSectionHeader("Dalam Pengiriman"),
         const SizedBox(height: 10),
         SizedBox(
           height: 240,
           child: StreamBuilder<QuerySnapshot>(
             // 1. Query ke Firestore
             stream: FirebaseFirestore.instance
-                .collection(Hampers.collectionName)
-                .orderBy('created_at',
-                    descending:
-                        true) // Urutkan dari yang terbaru (Z-A / Waktu besar ke kecil)
-                .limit(5) // Batasi hanya 5 dokumen
+                .collection(Deliveries.collectionName)
+                .where('is_on_delivery', isEqualTo: true)
+                .where('is_received', isEqualTo: false)
+                .where('user_id', isEqualTo: userId)
                 .snapshots(),
             builder: (context, snapshot) {
               // A. Jika sedang loading
@@ -109,89 +202,51 @@ class CustomerDeliveryPage extends StatelessWidget {
               final documents = snapshot.data!.docs;
 
               return ListView.builder(
-                scrollDirection: Axis.horizontal,
+                scrollDirection: Axis.vertical,
                 itemCount: documents.length,
                 physics: const AlwaysScrollableScrollPhysics(),
                 itemBuilder: (context, index) {
                   // Ambil data per dokumen
                   final data = documents[index].data() as Map<String, dynamic>;
-                  return ProductCardCustomer(
+                  return DeliveryCustomerCard(
                       onTap: () {
                         // Contoh penggunaan di halaman Home
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => DetailProductPage(
-                              product: Product.fromJson(data),
-                            ),
-                          ),
-                        );
+                        // Navigator.push(
+                        //   context,
+                        //   MaterialPageRoute(
+                        //     builder: (context) => DetailProductPage(
+                        //       product: Product.fromJson(data),
+                        //     ),
+                        //   ),
+                        // );
                       },
-                      product: Product.fromJson(data));
+                      onReceived: () {
+                        FirebaseFirestore.instance
+                            .collection(Deliveries.collectionName)
+                            .doc(Deliveries.fromJson(data).id)
+                            .update({
+                              'is_received': true,
+                              'updated_at': DateTime.now().toString(),
+                              'received_at': DateTime.now().toString(),
+                            })
+                            .then((_) {})
+                            .catchError((error) {
+                              if (mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                      backgroundColor: Colors.red,
+                                      content: Text("Error: $error")),
+                                );
+                              }
+                            });
+                      },
+                      delivery: Deliveries.fromJson(data));
                 },
               );
             },
           ),
         ),
         const SizedBox(height: 10),
-
-        _buildSectionHeader("Hampers"),
-        const SizedBox(height: 10),
-        SizedBox(
-          height: 240,
-          child: StreamBuilder<QuerySnapshot>(
-            // 1. Query ke Firestore
-            stream: FirebaseFirestore.instance
-                .collection(Hampers.collectionName)
-                .orderBy('created_at',
-                    descending:
-                        true) // Urutkan dari yang terbaru (Z-A / Waktu besar ke kecil)
-                .limit(5) // Batasi hanya 5 dokumen
-                .snapshots(),
-            builder: (context, snapshot) {
-              // A. Jika sedang loading
-              if (snapshot.connectionState == ConnectionState.waiting) {
-                return const Center(child: CircularProgressIndicator());
-              }
-
-              // B. Jika ada Error
-              if (snapshot.hasError) {
-                return const Center(child: Text("Terjadi kesalahan"));
-              }
-
-              // C. Jika Data Kosong
-              if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-                return const Center(child: Text("Belum ada produk"));
-              }
-
-              // D. Jika Data Ada
-              final documents = snapshot.data!.docs;
-
-              return ListView.builder(
-                scrollDirection: Axis.horizontal,
-                itemCount: documents.length,
-                physics: const AlwaysScrollableScrollPhysics(),
-                itemBuilder: (context, index) {
-                  // Ambil data per dokumen
-                  final data = documents[index].data() as Map<String, dynamic>;
-                  return ProductCardCustomer(
-                      onTap: () {
-                        // Contoh penggunaan di halaman Home
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => DetailProductPage(
-                              product: Product.fromJson(data),
-                            ),
-                          ),
-                        );
-                      },
-                      product: Product.fromJson(data));
-                },
-              );
-            },
-          ),
-        ),
       ],
     );
 
@@ -231,7 +286,7 @@ class CustomerDeliveryPage extends StatelessWidget {
             Navigator.pushReplacement(
               context,
               MaterialPageRoute(
-                builder: (context) => CustomerHomePage(key: key),
+                builder: (context) => CustomerHomePage(),
               ),
             );
           }),
@@ -240,7 +295,7 @@ class CustomerDeliveryPage extends StatelessWidget {
             Navigator.pushReplacement(
               context,
               MaterialPageRoute(
-                builder: (context) => CustomerCartPage(key: key),
+                builder: (context) => CustomerCartPage(),
               ),
             );
           }),
@@ -249,7 +304,7 @@ class CustomerDeliveryPage extends StatelessWidget {
             Navigator.pushReplacement(
               context,
               MaterialPageRoute(
-                builder: (context) => CustomerReceiptPage(key: key),
+                builder: (context) => CustomerReceiptPage(),
               ),
             );
           }),
@@ -259,7 +314,7 @@ class CustomerDeliveryPage extends StatelessWidget {
             Navigator.pushReplacement(
               context,
               MaterialPageRoute(
-                builder: (context) => CustomerFinishedOrderPage(key: key),
+                builder: (context) => CustomerFinishedOrderPage(),
               ),
             );
           }),

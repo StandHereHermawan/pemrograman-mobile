@@ -1,34 +1,26 @@
-import 'dart:developer';
-
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:pemprograman_mobile/attend/on_16/practice/_2/data/delivery.dart';
-import 'package:pemprograman_mobile/attend/on_16/practice/_2/page/customer/customer_cart.dart';
-import 'package:pemprograman_mobile/attend/on_16/practice/_2/page/customer/customer_delivery.dart';
-import 'package:pemprograman_mobile/attend/on_16/practice/_2/page/customer/customer_home.dart';
-import 'package:pemprograman_mobile/attend/on_16/practice/_2/page/customer/customer_receipt.dart';
+import 'package:pemprograman_mobile/attend/on_16/practice/_2/page/admin/admin_finished_order.dart';
+import 'package:pemprograman_mobile/attend/on_16/practice/_2/page/admin/admin_receipt.dart';
+import 'package:pemprograman_mobile/attend/on_16/practice/_2/page/admin/home.dart';
 import 'package:pemprograman_mobile/attend/on_16/practice/_2/page/login.dart';
 import 'package:pemprograman_mobile/attend/on_16/practice/_2/user_interface_component/appbar.dart';
-import 'package:pemprograman_mobile/attend/on_16/practice/_2/user_interface_component/deliveries_card_customer.dart';
+import 'package:pemprograman_mobile/attend/on_16/practice/_2/user_interface_component/deliveries_card_admin.dart';
 import 'package:pemprograman_mobile/attend/on_16/practice/_2/util/session_manager.dart';
 
-
-class CustomerFinishedOrderPage extends StatefulWidget {
-  const CustomerFinishedOrderPage({super.key});
+class AdminDeliveryPage extends StatefulWidget {
+  const AdminDeliveryPage({super.key});
 
   @override
-  State<StatefulWidget> createState() {
-    return _CustomerFinishedOrderPageState();
-  }
+  State<AdminDeliveryPage> createState() => _AdminDeliveryPageState();
 }
 
-class _CustomerFinishedOrderPageState extends State<CustomerFinishedOrderPage> {
-  String? userId;
-
+class _AdminDeliveryPageState extends State<AdminDeliveryPage> {
   @override
   void initState() {
     super.initState();
-    _checkSession(context);
+    _checkSession();
   }
 
   @override
@@ -37,85 +29,43 @@ class _CustomerFinishedOrderPageState extends State<CustomerFinishedOrderPage> {
     super.dispose();
   }
 
-// --- LOGIKA UTAMA CEK SESI ---
-  void _checkSession(BuildContext context) async {
-    // 1. Cek apakah ada data login di Shared Preferences
+  // --- LOGIKA UTAMA CEK SESI ---
+  Future<void> _checkSession() async {
+    // 1. Cek Login Status
     bool isLogin = await SessionManager.isUserLoggedIn();
 
+    if (!mounted) return; // Cek apakah widget masih ada
+
     if (!isLogin) {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => LoginPage()),
-      );
+      _redirectToLogin();
+      return;
     }
+
+    // 2. Ambil User ID
+    String? id = await SessionManager.getUserIdFuture();
+
+    if (!mounted) return;
+
+    if (id == null || id.isEmpty) {
+      _redirectToLogin();
+    }
+  }
+
+  void _redirectToLogin() {
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (context) => const LoginPage()),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    final dynamic appbar = CustomAppBar(title: "Customer Finished Order");
-    // Old
-    // final dynamic appbar = AppBar(
-    //   backgroundColor: Colors.white,
-    //   elevation: 0,
-    //   centerTitle: true,
-    //   leading: IconButton(
-    //     icon: const Icon(Icons.arrow_back_ios_new, color: Colors.grey),
-    //     onPressed: () => Navigator.pop(context),
-    //   ),
-    //   title: Container(
-    //     height: 45,
-    //     decoration: BoxDecoration(
-    //       color: Colors.white,
-    //       borderRadius: BorderRadius.circular(10),
-    //       boxShadow: [
-    //         BoxShadow(
-    //           color: Colors.black.withAlpha(20),
-    //           blurRadius: 10,
-    //           spreadRadius: 2,
-    //         )
-    //       ],
-    //     ),
-    //     child: Expanded(
-    //       child: Column(
-    //           crossAxisAlignment: CrossAxisAlignment.center,
-    //           mainAxisAlignment: MainAxisAlignment.center,
-    //           children: [
-    //             Padding(
-    //               padding: const EdgeInsets.all(8.0),
-    //               child: Text(
-    //                 "Finished Order",
-    //                 style: TextStyle(color: Colors.grey),
-    //               ),
-    //             ),
-    //           ]),
-    //     ),
-    //   ),
-    //   actions: [
-    //     Padding(
-    //       padding: const EdgeInsets.only(right: 16.0),
-    //       child: InkWell(
-    //           onTap: () {
-    //             Navigator.pushReplacement(
-    //               context,
-    //               MaterialPageRoute(
-    //                 builder: (context) => ProfilePageDummies(key: key),
-    //               ),
-    //             );
-    //           },
-    //           borderRadius: BorderRadius.circular(30),
-    //           child: CircleAvatar(
-    //             backgroundColor: Colors.black.withAlpha(50),
-    //             child: Icon(Icons.person_rounded),
-    //           )),
-    //     )
-    //   ],
-    // );
+    final dynamic appbar = CustomAppBar(title: "Admin Delivery");
 
     final dynamic body = ListView(
       padding: const EdgeInsets.all(16.0),
       children: [
-        // Section Kue
-        _buildSectionHeader("Pesanan Selesai"),
+        _buildSectionHeader("Belum dikirim oleh anda"),
         const SizedBox(height: 10),
         SizedBox(
           height: 240,
@@ -123,9 +73,8 @@ class _CustomerFinishedOrderPageState extends State<CustomerFinishedOrderPage> {
             // 1. Query ke Firestore
             stream: FirebaseFirestore.instance
                 .collection(Deliveries.collectionName)
-                .where('user_id', isEqualTo: userId)
-                .where('is_on_delivery', isEqualTo: true)
-                .where('is_received', isEqualTo: true)
+                .where('is_on_delivery', isEqualTo: false)
+                .where('is_received', isEqualTo: false)
                 .snapshots(),
             builder: (context, snapshot) {
               // A. Jika sedang loading
@@ -146,10 +95,6 @@ class _CustomerFinishedOrderPageState extends State<CustomerFinishedOrderPage> {
               // D. Jika Data Ada
               final documents = snapshot.data!.docs;
 
-              for (var element in documents) {
-                log("Data Diterima: $element");
-              }
-
               return ListView.builder(
                 scrollDirection: Axis.vertical,
                 itemCount: documents.length,
@@ -157,9 +102,7 @@ class _CustomerFinishedOrderPageState extends State<CustomerFinishedOrderPage> {
                 itemBuilder: (context, index) {
                   // Ambil data per dokumen
                   final data = documents[index].data() as Map<String, dynamic>;
-                  log("Data Diterima: $data");
-                  return DeliveryCustomerCard(
-                      
+                  return DeliveryAdminCard(
                       onTap: () {
                         // Contoh penggunaan di halaman Home
                         // Navigator.push(
@@ -171,7 +114,82 @@ class _CustomerFinishedOrderPageState extends State<CustomerFinishedOrderPage> {
                         //   ),
                         // );
                       },
-                      onReceived: () {},
+                      onStartDelivery: () {
+                        FirebaseFirestore.instance
+                            .collection(Deliveries.collectionName)
+                            .doc(Deliveries.fromJson(data).id)
+                            .update({
+                              'is_on_delivery': true,
+                              'on_delivery_at': DateTime.now().toString(),
+                              'updated_at': DateTime.now().toString(),
+                            })
+                            .then((_) {})
+                            .catchError((error) {
+                              if (mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                      backgroundColor: Colors.red,
+                                      content: Text("Error: $error")),
+                                );
+                              }
+                            });
+                      },
+                      delivery: Deliveries.fromJson(data));
+                },
+              );
+            },
+          ),
+        ),
+        // Section Kue
+        _buildSectionHeader("Dalam Pengiriman"),
+        const SizedBox(height: 10),
+        SizedBox(
+          height: 240,
+          child: StreamBuilder<QuerySnapshot>(
+            // 1. Query ke Firestore
+            stream: FirebaseFirestore.instance
+                .collection(Deliveries.collectionName)
+                .where('is_on_delivery', isEqualTo: true)
+                .where('is_received', isEqualTo: false)
+                .snapshots(),
+            builder: (context, snapshot) {
+              // A. Jika sedang loading
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Center(child: CircularProgressIndicator());
+              }
+
+              // B. Jika ada Error
+              if (snapshot.hasError) {
+                return const Center(child: Text("Terjadi kesalahan"));
+              }
+
+              // C. Jika Data Kosong
+              if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                return const Center(child: Text("Belum ada produk"));
+              }
+
+              // D. Jika Data Ada
+              final documents = snapshot.data!.docs;
+
+              return ListView.builder(
+                scrollDirection: Axis.vertical,
+                itemCount: documents.length,
+                physics: const AlwaysScrollableScrollPhysics(),
+                itemBuilder: (context, index) {
+                  // Ambil data per dokumen
+                  final data = documents[index].data() as Map<String, dynamic>;
+                  return DeliveryAdminCard(
+                      onTap: () {
+                        // Contoh penggunaan di halaman Home
+                        // Navigator.push(
+                        //   context,
+                        //   MaterialPageRoute(
+                        //     builder: (context) => DetailProductPage(
+                        //       product: Product.fromJson(data),
+                        //     ),
+                        //   ),
+                        // );
+                      },
                       delivery: Deliveries.fromJson(data));
                 },
               );
@@ -218,16 +236,7 @@ class _CustomerFinishedOrderPageState extends State<CustomerFinishedOrderPage> {
             Navigator.pushReplacement(
               context,
               MaterialPageRoute(
-                builder: (context) => CustomerHomePage(),
-              ),
-            );
-          }),
-          _navItem(Icons.shopping_cart_outlined, "Cart", false, badge: "0",
-              onTap: () {
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(
-                builder: (context) => CustomerCartPage(),
+                builder: (context) => AdminHomePage(),
               ),
             );
           }),
@@ -236,20 +245,26 @@ class _CustomerFinishedOrderPageState extends State<CustomerFinishedOrderPage> {
             Navigator.pushReplacement(
               context,
               MaterialPageRoute(
-                builder: (context) => CustomerReceiptPage(),
+                builder: (context) => AdminReceiptPage(),
               ),
             );
           }),
-          _navItem(Icons.delivery_dining, "On Delivery", false, badge: "0",
-              onTap: () {
+          _navItem(Icons.delivery_dining, "To Deliver", true, onTap: () {
             Navigator.pushReplacement(
               context,
               MaterialPageRoute(
-                builder: (context) => CustomerDeliveryPage(),
+                builder: (context) => AdminDeliveryPage(),
+              ),
+            );
+          }, badge: "0"),
+          _navItem(Icons.check_circle, "Order Finished", false, onTap: () {
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(
+                builder: (context) => AdminFinishedOrderPage(),
               ),
             );
           }),
-          _navItem(Icons.check_circle, "Finished", true, onTap: () {}),
         ],
       ),
     );
@@ -299,102 +314,76 @@ class _CustomerFinishedOrderPageState extends State<CustomerFinishedOrderPage> {
       ),
     );
   }
-
 }
 
 
-// class CustomerFinishedOrderPage extends StatelessWidget {
-//   const CustomerFinishedOrderPage({super.key});
-// // --- LOGIKA UTAMA CEK SESI ---
-//   void _checkSession(BuildContext context) async {
-//     // 1. Cek apakah ada data login di Shared Preferences
-//     bool isLogin = await SessionManager.isUserLoggedIn();
-
-//     if (!isLogin) {
-//       Navigator.pushReplacement(
-//         context,
-//         MaterialPageRoute(builder: (context) => LoginPage(key: key)),
-//       );
-//     }
-//   }
+// class AdminDeliveryPage extends StatelessWidget {
+//   const AdminDeliveryPage({super.key});
 
 //   @override
 //   Widget build(BuildContext context) {
-//     _checkSession(context);
-
-//     String userId = '';
-
-//     SessionManager.getUserIdFuture().then((value) {
-//       // Di dalam sini, 'value' adalah String
-//       userId = value ?? "Kosong";
-//       print("User ID block .getUserIdFuture().then CustomerFinishedOrderPage : $userId");
-
-//       // Lakukan logika lain yang butuh String di sini...
-//     });
-//     final dynamic appbar = CustomAppBar(title: "Customer Finished Order");
-//     // Old
-//     // final dynamic appbar = AppBar(
-//     //   backgroundColor: Colors.white,
-//     //   elevation: 0,
-//     //   centerTitle: true,
-//     //   leading: IconButton(
-//     //     icon: const Icon(Icons.arrow_back_ios_new, color: Colors.grey),
-//     //     onPressed: () => Navigator.pop(context),
-//     //   ),
-//     //   title: Container(
-//     //     height: 45,
-//     //     decoration: BoxDecoration(
-//     //       color: Colors.white,
-//     //       borderRadius: BorderRadius.circular(10),
-//     //       boxShadow: [
-//     //         BoxShadow(
-//     //           color: Colors.black.withAlpha(20),
-//     //           blurRadius: 10,
-//     //           spreadRadius: 2,
-//     //         )
-//     //       ],
-//     //     ),
-//     //     child: Expanded(
-//     //       child: Column(
-//     //           crossAxisAlignment: CrossAxisAlignment.center,
-//     //           mainAxisAlignment: MainAxisAlignment.center,
-//     //           children: [
-//     //             Padding(
-//     //               padding: const EdgeInsets.all(8.0),
-//     //               child: Text(
-//     //                 "Finished Order",
-//     //                 style: TextStyle(color: Colors.grey),
-//     //               ),
-//     //             ),
-//     //           ]),
-//     //     ),
-//     //   ),
-//     //   actions: [
-//     //     Padding(
-//     //       padding: const EdgeInsets.only(right: 16.0),
-//     //       child: InkWell(
-//     //           onTap: () {
-//     //             Navigator.pushReplacement(
-//     //               context,
-//     //               MaterialPageRoute(
-//     //                 builder: (context) => ProfilePageDummies(key: key),
-//     //               ),
-//     //             );
-//     //           },
-//     //           borderRadius: BorderRadius.circular(30),
-//     //           child: CircleAvatar(
-//     //             backgroundColor: Colors.black.withAlpha(50),
-//     //             child: Icon(Icons.person_rounded),
-//     //           )),
-//     //     )
-//     //   ],
-//     // );
+//     final dynamic appbar = AppBar(
+//       backgroundColor: Colors.white,
+//       elevation: 0,
+//       centerTitle: true,
+//       leading: IconButton(
+//         icon: const Icon(Icons.arrow_back_ios_new, color: Colors.grey),
+//         onPressed: () => Navigator.pop(context),
+//       ),
+//       title: Container(
+//         height: 45,
+//         decoration: BoxDecoration(
+//           color: Colors.white,
+//           borderRadius: BorderRadius.circular(10),
+//           boxShadow: [
+//             BoxShadow(
+//               color: Colors.black.withAlpha(20),
+//               blurRadius: 10,
+//               spreadRadius: 2,
+//             )
+//           ],
+//         ),
+//         child: Expanded(
+//           child: Column(
+//               crossAxisAlignment: CrossAxisAlignment.center,
+//               mainAxisAlignment: MainAxisAlignment.center,
+//               children: [
+//                 Padding(
+//                   padding: const EdgeInsets.all(8.0),
+//                   child: Text(
+//                     "Admin Delivery",
+//                     style: TextStyle(color: Colors.grey),
+//                   ),
+//                 ),
+//               ]),
+//         ),
+//       ),
+//       actions: [
+//         Padding(
+//           padding: const EdgeInsets.only(right: 16.0),
+//           child: InkWell(
+//               onTap: () {
+//                 Navigator.pushReplacement(
+//                   context,
+//                   MaterialPageRoute(
+//                     builder: (context) => ProfilePageDummies(key: key),
+//                   ),
+//                 );
+//               },
+//               borderRadius: BorderRadius.circular(30),
+//               child: CircleAvatar(
+//                 backgroundColor: Colors.black.withAlpha(50),
+//                 child: Icon(Icons.person_rounded),
+//               )),
+//         )
+//       ],
+//     );
 
 //     final dynamic body = ListView(
 //       padding: const EdgeInsets.all(16.0),
 //       children: [
-//         // Section Kue
-//         _buildSectionHeader("Pesanan Selesai"),
+        
+//         _buildSectionHeader("Belum dikirim oleh anda"),
 //         const SizedBox(height: 10),
 //         SizedBox(
 //           height: 240,
@@ -402,9 +391,8 @@ class _CustomerFinishedOrderPageState extends State<CustomerFinishedOrderPage> {
 //             // 1. Query ke Firestore
 //             stream: FirebaseFirestore.instance
 //                 .collection(Deliveries.collectionName)
-//                 .where('user_id', isEqualTo: userId)
-//                 .where('is_on_delivery', isEqualTo: true)
-//                 .where('is_received', isEqualTo: true)
+//                 .where('is_on_delivery', isEqualTo: false)
+//                 .where('is_received', isEqualTo: false)
 //                 .snapshots(),
 //             builder: (context, snapshot) {
 //               // A. Jika sedang loading
@@ -425,10 +413,6 @@ class _CustomerFinishedOrderPageState extends State<CustomerFinishedOrderPage> {
 //               // D. Jika Data Ada
 //               final documents = snapshot.data!.docs;
 
-//               for (var element in documents) {
-//                 log("Data Diterima: $element");
-//               }
-
 //               return ListView.builder(
 //                 scrollDirection: Axis.vertical,
 //                 itemCount: documents.length,
@@ -436,9 +420,7 @@ class _CustomerFinishedOrderPageState extends State<CustomerFinishedOrderPage> {
 //                 itemBuilder: (context, index) {
 //                   // Ambil data per dokumen
 //                   final data = documents[index].data() as Map<String, dynamic>;
-//                   log("Data Diterima: $data");
-//                   return DeliveryCustomerCard(
-//                       key: key,
+//                   return DeliveryAdminCard(
 //                       onTap: () {
 //                         // Contoh penggunaan di halaman Home
 //                         // Navigator.push(
@@ -450,7 +432,63 @@ class _CustomerFinishedOrderPageState extends State<CustomerFinishedOrderPage> {
 //                         //   ),
 //                         // );
 //                       },
-//                       onReceived: () {},
+//                       onStartDelivery: () {},
+//                       delivery: Deliveries.fromJson(data));
+//                 },
+//               );
+//             },
+//           ),
+//         ),
+//         // Section Kue
+//         _buildSectionHeader("Dalam Pengiriman"),
+//         const SizedBox(height: 10),
+//         SizedBox(
+//           height: 240,
+//           child: StreamBuilder<QuerySnapshot>(
+//             // 1. Query ke Firestore
+//             stream: FirebaseFirestore.instance
+//                 .collection(Deliveries.collectionName)
+//                 .where('is_on_delivery', isEqualTo: true)
+//                 .where('is_received', isEqualTo: false)
+//                 .snapshots(),
+//             builder: (context, snapshot) {
+//               // A. Jika sedang loading
+//               if (snapshot.connectionState == ConnectionState.waiting) {
+//                 return const Center(child: CircularProgressIndicator());
+//               }
+
+//               // B. Jika ada Error
+//               if (snapshot.hasError) {
+//                 return const Center(child: Text("Terjadi kesalahan"));
+//               }
+
+//               // C. Jika Data Kosong
+//               if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+//                 return const Center(child: Text("Belum ada produk"));
+//               }
+
+//               // D. Jika Data Ada
+//               final documents = snapshot.data!.docs;
+
+//               return ListView.builder(
+//                 scrollDirection: Axis.vertical,
+//                 itemCount: documents.length,
+//                 physics: const AlwaysScrollableScrollPhysics(),
+//                 itemBuilder: (context, index) {
+//                   // Ambil data per dokumen
+//                   final data = documents[index].data() as Map<String, dynamic>;
+//                   return DeliveryAdminCard(
+//                       onTap: () {
+//                         // Contoh penggunaan di halaman Home
+//                         // Navigator.push(
+//                         //   context,
+//                         //   MaterialPageRoute(
+//                         //     builder: (context) => DetailProductPage(
+//                         //       product: Product.fromJson(data),
+//                         //     ),
+//                         //   ),
+//                         // );
+//                       },
 //                       delivery: Deliveries.fromJson(data));
 //                 },
 //               );
@@ -497,38 +535,34 @@ class _CustomerFinishedOrderPageState extends State<CustomerFinishedOrderPage> {
 //             Navigator.pushReplacement(
 //               context,
 //               MaterialPageRoute(
-//                 builder: (context) => CustomerHomePage(key: key),
+//                 builder: (context) => AdminHomePage(key: key),
 //               ),
 //             );
 //           }),
-//           _navItem(Icons.shopping_cart_outlined, "Cart", false, badge: "0",
-//               onTap: () {
+//           _navItem(Icons.point_of_sale, "To Paid", false, badge: "0", onTap: () {
 //             Navigator.pushReplacement(
 //               context,
 //               MaterialPageRoute(
-//                 builder: (context) => CustomerCartPage(key: key),
+//                 builder: (context) => AdminReceiptPage(key: key),
 //               ),
 //             );
 //           }),
-//           _navItem(Icons.point_of_sale, "To Paid", false, badge: "0",
-//               onTap: () {
+//           _navItem(Icons.delivery_dining, "To Deliver", true, onTap: () {
 //             Navigator.pushReplacement(
 //               context,
 //               MaterialPageRoute(
-//                 builder: (context) => CustomerReceiptPage(key: key),
+//                 builder: (context) => AdminDeliveryPage(key: key),
 //               ),
 //             );
-//           }),
-//           _navItem(Icons.delivery_dining, "On Delivery", false, badge: "0",
-//               onTap: () {
+//           }, badge: "0"),
+//           _navItem(Icons.check_circle, "Order Finished", false, onTap: () {
 //             Navigator.pushReplacement(
 //               context,
 //               MaterialPageRoute(
-//                 builder: (context) => CustomerDeliveryPage(key: key),
+//                 builder: (context) => AdminFinishedOrderPage(key: key),
 //               ),
 //             );
 //           }),
-//           _navItem(Icons.check_circle, "Finished", true, onTap: () {}),
 //         ],
 //       ),
 //     );

@@ -31,7 +31,7 @@ class _LoginPageState extends State<LoginPage> {
 
     if (isLogin) {
       // 2. Ambil User ID dari Shared Preferences
-      String? userId = await SessionManager.getUserId();
+      String? userId = await SessionManager.getUserIdFuture();
 
       if (userId != null) {
         // 3. Ambil data User (Role) dari Firestore
