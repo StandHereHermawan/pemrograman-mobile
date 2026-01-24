@@ -70,6 +70,7 @@ class _CustomerCartPageState extends State<CustomerCartPage> {
   }
 
   void _redirectToLogin() {
+    SessionManager.logout();
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(builder: (context) => const LoginPage()),

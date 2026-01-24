@@ -1,5 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:pemprograman_mobile/attend/on_16/practice/_2/page/admin/home.dart';
+import 'package:pemprograman_mobile/attend/on_16/practice/_2/page/customer/customer_home.dart';
 import 'package:pemprograman_mobile/attend/on_16/practice/_2/page/customer/customer_kue.dart';
 import 'package:pemprograman_mobile/attend/on_16/practice/_2/page/customer/customer_hampers.dart';
 import 'package:pemprograman_mobile/attend/on_16/practice/_2/data/hampers.dart';
@@ -10,58 +12,84 @@ import 'package:pemprograman_mobile/attend/on_16/practice/_2/page/customer/custo
 import 'package:pemprograman_mobile/attend/on_16/practice/_2/page/customer/customer_receipt.dart';
 import 'package:pemprograman_mobile/attend/on_16/practice/_2/page/detail_product.dart';
 import 'package:pemprograman_mobile/attend/on_16/practice/_2/page/login.dart';
+import 'package:pemprograman_mobile/attend/on_16/practice/_2/service/auth.dart';
 import 'package:pemprograman_mobile/attend/on_16/practice/_2/user_interface_component/appbar.dart';
 import 'package:pemprograman_mobile/attend/on_16/practice/_2/user_interface_component/product_card_customer.dart';
 import 'package:pemprograman_mobile/attend/on_16/practice/_2/util/session_manager.dart';
 
-class CustomerHomePage extends StatefulWidget {
-  const CustomerHomePage({super.key});
+class VisitorHomePage extends StatefulWidget {
+  const VisitorHomePage({super.key});
 
   @override
-  State<CustomerHomePage> createState() => _CustomerHomePageState();
+  State<VisitorHomePage> createState() => _VisitorHomePageState();
 }
 
-class _CustomerHomePageState extends State<CustomerHomePage> {
+class _VisitorHomePageState extends State<VisitorHomePage> {
+  final AuthService _authService = AuthService();
+
   @override
   void initState() {
     super.initState();
     _checkSession();
   }
 
-  Future<void> _checkSession() async {
-    // 1. Cek Login Status
+  // --- LOGIKA UTAMA CEK SESI ---
+  void _checkSession() async {
+    // 1. Cek apakah ada data login di Shared Preferences
     bool isLogin = await SessionManager.isUserLoggedIn();
 
-    if (!mounted) return; // Cek apakah widget masih ada
+    if (isLogin) {
+      // 2. Ambil User ID dari Shared Preferences
+      String? userId = await SessionManager.getUserIdFuture();
 
-    if (!isLogin) {
-      _redirectToLogin();
-      return;
-    }
+      if (userId != null) {
+        // 3. Ambil data User (Role) dari Firestore
+        String? role = await _authService.getUserRole(userId);
 
-    // 2. Ambil User ID
-    String? id = await SessionManager.getUserIdFuture();
-
-    if (!mounted) return;
-
-    if (id == null || id.isEmpty) {
-      _redirectToLogin();
+        if (role != null) {
+          // 4. Jika sukses, langsung navigasi
+          _navigateBasedOnRole(role);
+          return; // Stop eksekusi agar tidak mengubah state _isCheckingSession
+        } else {
+          // Kasus aneh: Di HP login, tapi di Firestore user sudah dihapus/error
+          // Maka paksa logout dari HP
+          await SessionManager.logout();
+        }
+      }
     }
   }
 
-  void _redirectToLogin() {
-    SessionManager.logout();
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(builder: (context) => const LoginPage()),
-    );
+  // Helper untuk navigasi
+  void _navigateBasedOnRole(String role) {
+    if (!mounted) return;
+
+    if (role == 'admin') {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => AdminHomePage()),
+      );
+    } else {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => CustomerHomePage()),
+      );
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      appBar: CustomAppBar(title: "Customer Home"),
+      appBar: CustomAppBar(
+        title: "Visitor Home",
+        onProfilePressed: () {
+          SessionManager.logout();
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (context) => const LoginPage()),
+          );
+        },
+      ),
       body: ListView(
         padding: const EdgeInsets.all(16.0),
         children: [
@@ -204,7 +232,6 @@ class _CustomerHomePageState extends State<CustomerHomePage> {
         stream: FirebaseFirestore.instance
             .collection(collection)
             .orderBy('created_at', descending: true)
-            .limit(5)
             .snapshots(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {

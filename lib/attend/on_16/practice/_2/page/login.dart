@@ -3,6 +3,7 @@ import 'package:pemprograman_mobile/attend/on_16/practice/_2/data/helper/login.d
 import 'package:pemprograman_mobile/attend/on_16/practice/_2/page/admin/home.dart';
 import 'package:pemprograman_mobile/attend/on_16/practice/_2/page/customer/customer_home.dart';
 import 'package:pemprograman_mobile/attend/on_16/practice/_2/page/register.dart';
+import 'package:pemprograman_mobile/attend/on_16/practice/_2/page/visitor.dart';
 import 'package:pemprograman_mobile/attend/on_16/practice/_2/service/auth.dart';
 import 'package:pemprograman_mobile/attend/on_16/practice/_2/util/session_manager.dart';
 
@@ -213,42 +214,48 @@ class _LoginPageState extends State<LoginPage> {
                       ),
                     ),
                     const SizedBox(height: 10),
-                    //
-                    // // Remember Me & Forgot Password
-                    // Row(
-                    //   mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    //   children: [
-                    //     Row(
-                    //       children: [
-                    //         SizedBox(
-                    //           height: 24,
-                    //           width: 24,
-                    //           child: Checkbox(
-                    //             value: _rememberMe,
-                    //             activeColor: const Color(0xFFD81B60),
-                    //             onChanged: (value) {
-                    //               setState(() {
-                    //                 _rememberMe = value!;
-                    //               });
-                    //             },
-                    //           ),
-                    //         ),
-                    //         const Text(" Remember me",
-                    //             style: TextStyle(
-                    //                 color: Colors.grey, fontSize: 12)),
-                    //       ],
-                    //     ),
-                    //     TextButton(
-                    //       onPressed: () {},
-                    //       child: const Text(
-                    //         "Forgot Password",
-                    //         style: TextStyle(
-                    //             color: Color(0xFFD81B60), fontSize: 12),
-                    //       ),
-                    //     ),
-                    //   ],
-                    // ),
-                    //
+
+                    // Remember Me & Forgot Password
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        // Row(
+                        //   children: [
+                        //     SizedBox(
+                        //       height: 24,
+                        //       width: 24,
+                        //       child: Checkbox(
+                        //         value: _rememberMe,
+                        //         activeColor: const Color(0xFFD81B60),
+                        //         onChanged: (value) {
+                        //           setState(() {
+                        //             _rememberMe = value!;
+                        //           });
+                        //         },
+                        //       ),
+                        //     ),
+                        //     const Text(" Remember me",
+                        //         style: TextStyle(
+                        //             color: Colors.grey, fontSize: 12)),
+                        //   ],
+                        // ),
+                        TextButton(
+                          onPressed: () {
+                            Navigator.pushReplacement(
+                              context,
+                              MaterialPageRoute(
+                                  builder: (context) => const VisitorHomePage()),
+                            );
+                          },
+                          child: const Text(
+                            "Visitor Page",
+                            style: TextStyle(
+                                color: Color(0xFFD81B60), fontSize: 12),
+                          ),
+                        ),
+                      ],
+                    ),
+
                     const SizedBox(height: 20),
 
                     // Button Log In
