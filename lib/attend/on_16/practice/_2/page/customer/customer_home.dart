@@ -1,5 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:pemprograman_mobile/attend/on_16/practice/_2/page/customer/customer_kue.dart';
+import 'package:pemprograman_mobile/attend/on_16/practice/_2/page/customer/customer_hampers.dart';
 import 'package:pemprograman_mobile/attend/on_16/practice/_2/data/hampers.dart';
 import 'package:pemprograman_mobile/attend/on_16/practice/_2/data/product.dart';
 import 'package:pemprograman_mobile/attend/on_16/practice/_2/page/customer/customer_cart.dart';
@@ -12,242 +14,226 @@ import 'package:pemprograman_mobile/attend/on_16/practice/_2/user_interface_comp
 import 'package:pemprograman_mobile/attend/on_16/practice/_2/user_interface_component/product_card_customer.dart';
 import 'package:pemprograman_mobile/attend/on_16/practice/_2/util/session_manager.dart';
 
-class CustomerHomePage extends StatelessWidget {
+class CustomerHomePage extends StatefulWidget {
   const CustomerHomePage({super.key});
-// --- LOGIKA UTAMA CEK SESI ---
-  void _checkSession(BuildContext context) async {
-    // 1. Cek apakah ada data login di Shared Preferences
-    bool isLogin = await SessionManager.isUserLoggedIn();
 
-    if (!isLogin) {
+  @override
+  State<CustomerHomePage> createState() => _CustomerHomePageState();
+}
+
+class _CustomerHomePageState extends State<CustomerHomePage> {
+  @override
+  void initState() {
+    super.initState();
+    _checkSession();
+  }
+
+  void _checkSession() async {
+    bool isLogin = await SessionManager.isUserLoggedIn();
+    if (!isLogin && mounted) {
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (context) => LoginPage(key: key)),
+        MaterialPageRoute(builder: (context) => const LoginPage()),
       );
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    _checkSession(context);
-    final dynamic appbar = CustomAppBar(title: "Customer Home");
-    // Old
-    // final dynamic appbar = AppBar(
-    //   backgroundColor: Colors.white,
-    //   elevation: 0,
-    //   centerTitle: true,
-    //   title: Container(
-    //     height: 45,
-    //     decoration: BoxDecoration(
-    //       color: Colors.white,
-    //       borderRadius: BorderRadius.circular(10),
-    //       boxShadow: [
-    //         BoxShadow(
-    //           color: Colors.black.withAlpha(20),
-    //           blurRadius: 10,
-    //           spreadRadius: 2,
-    //         )
-    //       ],
-    //     ),
-    //     // child: const TextField(1
-    //     //   decoration: InputDecoration(
-    //     //     hintText: 'Search',
-    //     //     prefixIcon: Icon(Icons.search, color: Colors.grey),
-    //     //     border: InputBorder.none,
-    //     //     contentPadding: EdgeInsets.symmetric(vertical: 10),
-    //     //   ),
-    //     // ),
-    //     child: Expanded(
-    //       child: Column(
-    //           crossAxisAlignment: CrossAxisAlignment.center,
-    //           mainAxisAlignment: MainAxisAlignment.center,
-    //           children: [
-    //             Padding(
-    //               padding: const EdgeInsets.all(8.0),
-    //               child: Text(
-    //                 "Customer Home",
-    //                 style: TextStyle(color: Colors.grey),
-    //               ),
-    //             ),
-    //           ]),
-    //     ),
-    //   ),
-    //   actions: [
-    //     Padding(
-    //       padding: const EdgeInsets.only(right: 16.0),
-    //       child: InkWell(
-    //           onTap: () {
-    //             Navigator.pushReplacement(
-    //               context,
-    //               MaterialPageRoute(
-    //                 builder: (context) => ProfilePage(key: key),
-    //               ),
-    //             );
-    //           },
-    //           borderRadius: BorderRadius.circular(30),
-    //           child: CircleAvatar(
-    //             backgroundColor: Colors.black.withAlpha(50),
-    //             child: Icon(Icons.person_rounded),
-    //           )),
-    //     )
-    //   ],
-    // );
-
-    final dynamic body = ListView(
-      padding: const EdgeInsets.all(16.0),
-      children: [
-        // Banner Placeholder
-
-        Container(
-          height: 180,
-          decoration: BoxDecoration(
-            color: Colors.grey[300],
-            borderRadius: BorderRadius.circular(20),
-          ),
-        ),
-        const SizedBox(height: 10),
-        // Dot Indicator
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            _buildDot(false),
-            _buildDot(false),
-            _buildDot(false),
-          ],
-        ),
-        const SizedBox(height: 20),
-
-        // Section Popular Meal
-        _buildSectionHeader("Popular Meal Menu"),
-        const SizedBox(height: 10),
-        _buildPopularCard(),
-        const SizedBox(height: 20),
-
-        // Section Kue
-        _buildSectionHeader("Kue"),
-        const SizedBox(height: 10),
-        SizedBox(
-          height: 240,
-          child: StreamBuilder<QuerySnapshot>(
-            // 1. Query ke Firestore
-            stream: FirebaseFirestore.instance
-                .collection(Product.collectionName)
-                .orderBy('created_at',
-                    descending:
-                        true) // Urutkan dari yang terbaru (Z-A / Waktu besar ke kecil)
-                .limit(5) // Batasi hanya 5 dokumen
-                .snapshots(),
-            builder: (context, snapshot) {
-              // A. Jika sedang loading
-              if (snapshot.connectionState == ConnectionState.waiting) {
-                return const Center(child: CircularProgressIndicator());
-              }
-
-              // B. Jika ada Error
-              if (snapshot.hasError) {
-                return const Center(child: Text("Terjadi kesalahan"));
-              }
-
-              // C. Jika Data Kosong
-              if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-                return const Center(child: Text("Belum ada produk"));
-              }
-
-              // D. Jika Data Ada
-              final documents = snapshot.data!.docs;
-
-              return ListView.builder(
-                scrollDirection: Axis.horizontal,
-                itemCount: documents.length,
-                physics: const AlwaysScrollableScrollPhysics(),
-                itemBuilder: (context, index) {
-                  // Ambil data per dokumen
-                  final data = documents[index].data() as Map<String, dynamic>;
-                  return ProductCardCustomer(
-                      onTap: () {
-                        // Contoh penggunaan di halaman Home
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => DetailProductPage(
-                              product: Product.fromJson(data),
-                            ),
-                          ),
-                        );
-                      },
-                      product: Product.fromJson(data));
-                },
-              );
-            },
-          ),
-        ),
-        const SizedBox(height: 10),
-
-        _buildSectionHeader("Hampers"),
-        const SizedBox(height: 10),
-        SizedBox(
-          height: 240,
-          child: StreamBuilder<QuerySnapshot>(
-            // 1. Query ke Firestore
-            stream: FirebaseFirestore.instance
-                .collection(Hampers.collectionName)
-                .orderBy('created_at',
-                    descending:
-                        true) // Urutkan dari yang terbaru (Z-A / Waktu besar ke kecil)
-                .limit(5) // Batasi hanya 5 dokumen
-                .snapshots(),
-            builder: (context, snapshot) {
-              // A. Jika sedang loading
-              if (snapshot.connectionState == ConnectionState.waiting) {
-                return const Center(child: CircularProgressIndicator());
-              }
-
-              // B. Jika ada Error
-              if (snapshot.hasError) {
-                return const Center(child: Text("Terjadi kesalahan"));
-              }
-
-              // C. Jika Data Kosong
-              if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-                return const Center(child: Text("Belum ada produk"));
-              }
-
-              // D. Jika Data Ada
-              final documents = snapshot.data!.docs;
-
-              return ListView.builder(
-                scrollDirection: Axis.horizontal,
-                itemCount: documents.length,
-                physics: const AlwaysScrollableScrollPhysics(),
-                itemBuilder: (context, index) {
-                  // Ambil data per dokumen
-                  final data = documents[index].data() as Map<String, dynamic>;
-                  return ProductCardCustomer(
-                      onTap: () {
-                        // Contoh penggunaan di halaman Home
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => DetailProductPage(
-                              product: Product.fromJson(data),
-                            ),
-                          ),
-                        );
-                      },
-                      product: Product.fromJson(data));
-                },
-              );
-            },
-          ),
-        ),
-      ],
-    );
-
     return Scaffold(
       backgroundColor: Colors.white,
-      appBar: appbar,
-      body: body,
+      appBar: CustomAppBar(title: "Customer Home"),
+      body: ListView(
+        padding: const EdgeInsets.all(16.0),
+        children: [
+          // 1. Banner Section
+          SizedBox(
+            height: 180,
+            child: PageView(
+              children: [
+                _buildImageSlider("assets/images/banner1.png"),
+                _buildImageSlider("assets/images/banner2.png"),
+                _buildImageSlider("assets/images/banner3.png"),
+              ],
+            ),
+          ),
+          const SizedBox(height: 10),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [_buildDot(true), _buildDot(false), _buildDot(false)],
+          ),
+          const SizedBox(height: 25),
+
+          // 2. POPULAR MENU (Hapus See All & Ambil 3 Produk)
+          const Text(
+            "Popular Menu",
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 12),
+
+          // Stream khusus untuk Popular Menu
+          StreamBuilder<QuerySnapshot>(
+            stream: FirebaseFirestore.instance
+                .collection(Product.collectionName)
+                .limit(3) // Ambil 3 data saja
+                .snapshots(),
+            builder: (context, snapshot) {
+              if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                return const Center(child: Text("Belum ada menu populer"));
+              }
+              final docs = snapshot.data!.docs;
+              return Column(
+                children: docs.map((doc) {
+                  final data = doc.data() as Map<String, dynamic>;
+                  final productObj = Product.fromJson(data);
+                  return _buildPopularCard(productObj);
+                }).toList(),
+              );
+            },
+          ),
+
+          const SizedBox(height: 25),
+
+          // 3. Section Kue
+          _buildSectionHeader("Kue", () {
+            Navigator.push(context,
+                MaterialPageRoute(builder: (context) => const KuePage()));
+          }),
+          const SizedBox(height: 10),
+          _buildProductStream(Product.collectionName),
+
+          const SizedBox(height: 25),
+
+          // 4. Section Hampers
+          _buildSectionHeader("Hampers", () {
+            Navigator.push(context,
+                MaterialPageRoute(builder: (context) => const HampersPage()));
+          }),
+          const SizedBox(height: 10),
+          _buildProductStream(Hampers.collectionName),
+        ],
+      ),
       bottomNavigationBar: _buildBottomNav(context),
+    );
+  }
+
+  // Desain Kartu Popular Menu
+  Widget _buildPopularCard(Product product) {
+    return InkWell(
+      onTap: () {
+        Navigator.push(
+            context,
+            MaterialPageRoute(
+                builder: (context) => DetailProductPage(product: product)));
+      },
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 12),
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(15),
+          border: Border.all(color: Colors.grey.shade100),
+          boxShadow: [
+            BoxShadow(
+                color: Colors.black.withOpacity(0.02),
+                blurRadius: 5,
+                offset: const Offset(0, 2))
+          ],
+        ),
+        child: Row(
+          children: [
+            Container(
+              height: 60,
+              width: 60,
+              decoration: BoxDecoration(
+                color: Colors.grey[100],
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: const Icon(Icons.stars, color: Colors.orange, size: 30),
+            ),
+            const SizedBox(width: 15),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(product.name,
+                      style: const TextStyle(
+                          fontWeight: FontWeight.bold, fontSize: 15)),
+                  Text("Best Seller Product",
+                      style: TextStyle(color: Colors.grey[500], fontSize: 12)),
+                ],
+              ),
+            ),
+            Text(
+              "Rp${product.price}",
+              style: const TextStyle(
+                  color: Colors.pink,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 15),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // Stream untuk List Horizontal
+  Widget _buildProductStream(String collection) {
+    return SizedBox(
+      height: 230,
+      child: StreamBuilder<QuerySnapshot>(
+        stream: FirebaseFirestore.instance
+            .collection(collection)
+            .orderBy('created_at', descending: true)
+            .limit(5)
+            .snapshots(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting)
+            return const SizedBox();
+          if (!snapshot.hasData || snapshot.data!.docs.isEmpty)
+            return const SizedBox();
+
+          final docs = snapshot.data!.docs;
+          return ListView.builder(
+            scrollDirection: Axis.horizontal,
+            itemCount: docs.length,
+            itemBuilder: (context, index) {
+              final data = docs[index].data() as Map<String, dynamic>;
+              final productObj = Product.fromJson(data);
+              return Padding(
+                padding: const EdgeInsets.only(right: 12),
+                child: SizedBox(
+                  width: 160,
+                  child: ProductCardCustomer(
+                    product: productObj,
+                    onTap: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (context) =>
+                                DetailProductPage(product: productObj))),
+                  ),
+                ),
+              );
+            },
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildSectionHeader(String title, VoidCallback onTap) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(title,
+            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+        TextButton(
+          onPressed: onTap,
+          child: Text("See All >",
+              style: TextStyle(
+                  color: Colors.grey[500], fontWeight: FontWeight.bold)),
+        ),
+      ],
     );
   }
 
@@ -257,161 +243,59 @@ class CustomerHomePage extends StatelessWidget {
       height: 8,
       width: 8,
       decoration: BoxDecoration(
-        color: isActive ? Colors.red : Colors.grey[300],
-        shape: BoxShape.circle,
+          color: isActive ? Colors.pink : Colors.grey[300],
+          shape: BoxShape.circle),
+    );
+  }
+
+  Widget _buildImageSlider(String imagePath) {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 5),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(20),
+        image: DecorationImage(image: AssetImage(imagePath), fit: BoxFit.cover),
       ),
     );
   }
 
-  Widget _buildSectionHeader(String title) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text(title,
-            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-        const Text("See All >",
-            style: TextStyle(color: Colors.grey, fontSize: 12)),
+  Widget _buildBottomNav(BuildContext context) {
+    return BottomNavigationBar(
+      type: BottomNavigationBarType.fixed,
+      selectedItemColor: Colors.pink,
+      unselectedItemColor: Colors.grey,
+      currentIndex: 0,
+      onTap: (index) {
+        if (index == 1)
+          Navigator.push(
+              context,
+              MaterialPageRoute(
+                  builder: (context) => const CustomerCartPage()));
+        if (index == 2)
+          Navigator.push(
+              context,
+              MaterialPageRoute(
+                  builder: (context) => const CustomerReceiptPage()));
+        if (index == 3)
+          Navigator.push(
+              context,
+              MaterialPageRoute(
+                  builder: (context) => const CustomerDeliveryPage()));
+        if (index == 4)
+          Navigator.push(
+              context,
+              MaterialPageRoute(
+                  builder: (context) => const CustomerFinishedOrderPage()));
+      },
+      items: const [
+        BottomNavigationBarItem(icon: Icon(Icons.home), label: "Home"),
+        BottomNavigationBarItem(icon: Icon(Icons.shopping_cart), label: "Cart"),
+        BottomNavigationBarItem(
+            icon: Icon(Icons.point_of_sale), label: "To Paid"),
+        BottomNavigationBarItem(
+            icon: Icon(Icons.delivery_dining), label: "Delivery"),
+        BottomNavigationBarItem(
+            icon: Icon(Icons.check_circle), label: "Finished"),
       ],
-    );
-  }
-
-  Widget _buildPopularCard() {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(15),
-        boxShadow: [
-          BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10)
-        ],
-      ),
-      child: Row(
-        children: [
-          ClipRRect(
-            borderRadius: BorderRadius.circular(10),
-            child: Container(
-                color: Colors.grey[200],
-                height: 70,
-                width: 70), // Ganti dengan Image.asset
-          ),
-          const SizedBox(width: 15),
-          const Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text("Pepper Pizza",
-                    style:
-                        TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                Text("5kg box of Pizza",
-                    style: TextStyle(color: Colors.grey, fontSize: 12)),
-              ],
-            ),
-          ),
-          const Text("\$15",
-              style: TextStyle(
-                  color: Colors.pink,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 20)),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildBottomNav(context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 10),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        boxShadow: [
-          BoxShadow(color: Colors.black.withAlpha(5), blurRadius: 10)
-        ],
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
-        children: [
-          _navItem(Icons.home, "Home", true, onTap: () {}),
-          _navItem(Icons.shopping_cart_outlined, "Cart", false, badge: "0",
-              onTap: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => CustomerCartPage(key: key),
-              ),
-            );
-          }),
-          _navItem(Icons.point_of_sale, "To Paid", false, badge: "0",
-              onTap: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => CustomerReceiptPage(key: key),
-              ),
-            );
-          }),
-          _navItem(Icons.delivery_dining, "On Delivery", false, badge: "0",
-              onTap: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => CustomerDeliveryPage(key: key),
-              ),
-            );
-          }),
-          _navItem(Icons.check_circle, "Finished", false, onTap: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => CustomerFinishedOrderPage(key: key),
-              ),
-            );
-          }),
-        ],
-      ),
-    );
-  }
-
-  Widget _navItem(IconData icon, String label, bool isActive,
-      {String? badge, onTap}) {
-    return InkWell(
-      borderRadius: BorderRadius.circular(30),
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        decoration: BoxDecoration(
-          color: isActive ? Colors.pink[50] : Colors.transparent,
-          borderRadius: BorderRadius.circular(20),
-        ),
-        child: Row(
-          children: [
-            Stack(
-              children: [
-                Icon(icon, color: isActive ? Colors.pink : Colors.grey),
-                if (badge != null)
-                  Positioned(
-                    right: 0,
-                    top: 0,
-                    child: Container(
-                      padding: const EdgeInsets.all(2),
-                      decoration: const BoxDecoration(
-                          color: Colors.red, shape: BoxShape.circle),
-                      constraints:
-                          const BoxConstraints(minWidth: 12, minHeight: 12),
-                      child: Text(badge,
-                          style:
-                              const TextStyle(color: Colors.white, fontSize: 8),
-                          textAlign: TextAlign.center),
-                    ),
-                  )
-              ],
-            ),
-            if (isActive) const SizedBox(width: 8),
-            if (isActive)
-              Text(label,
-                  style: const TextStyle(
-                      color: Colors.pink, fontWeight: FontWeight.bold)),
-          ],
-        ),
-      ),
     );
   }
 }

@@ -28,6 +28,10 @@ class Product {
           createdAt: jsonObject?['created_at'] as String,
         );
 
+  get rating => null;
+
+  get image => null;
+
   Map<String, dynamic> toJson() {
     return {
       'id': id,
