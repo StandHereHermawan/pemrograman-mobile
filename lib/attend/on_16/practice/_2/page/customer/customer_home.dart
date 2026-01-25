@@ -1,31 +1,17 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-
 import 'package:flutter/material.dart';
-
 import 'package:pemprograman_mobile/attend/on_16/practice/_2/page/customer/customer_kue.dart';
-
 import 'package:pemprograman_mobile/attend/on_16/practice/_2/page/customer/customer_hampers.dart';
-
 import 'package:pemprograman_mobile/attend/on_16/practice/_2/data/hampers.dart';
-
 import 'package:pemprograman_mobile/attend/on_16/practice/_2/data/product.dart';
-
 import 'package:pemprograman_mobile/attend/on_16/practice/_2/page/customer/customer_cart.dart';
-
 import 'package:pemprograman_mobile/attend/on_16/practice/_2/page/customer/customer_delivery.dart';
-
 import 'package:pemprograman_mobile/attend/on_16/practice/_2/page/customer/customer_finished_order.dart';
-
 import 'package:pemprograman_mobile/attend/on_16/practice/_2/page/customer/customer_receipt.dart';
-
 import 'package:pemprograman_mobile/attend/on_16/practice/_2/page/detail_product.dart';
-
 import 'package:pemprograman_mobile/attend/on_16/practice/_2/page/login.dart';
-
 import 'package:pemprograman_mobile/attend/on_16/practice/_2/user_interface_component/appbar.dart';
-
 import 'package:pemprograman_mobile/attend/on_16/practice/_2/user_interface_component/product_card_customer.dart';
-
 import 'package:pemprograman_mobile/attend/on_16/practice/_2/util/session_manager.dart';
 
 class CustomerHomePage extends StatefulWidget {
@@ -39,15 +25,29 @@ class _CustomerHomePageState extends State<CustomerHomePage> {
   @override
   void initState() {
     super.initState();
-
-    _checkSession();
+    // LOGIKA DIUBAH: Kita tidak panggil _checkSession di sini
+    // agar user bisa langsung melihat isi home page.
   }
 
-  void _checkSession() async {
+  // --- FUNGSI BARU: Pagar Login ---
+  // Fungsi ini mengecek sesi sebelum pindah ke halaman sensitif
+  Future<void> _navigateTo(Widget targetPage) async {
     bool isLogin = await SessionManager.isUserLoggedIn();
 
-    if (!isLogin && mounted) {
-      Navigator.pushReplacement(
+    if (!mounted) return;
+
+    if (isLogin) {
+      // Kalau sudah login, langsung gas ke halaman tujuan
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => targetPage),
+      );
+    } else {
+      // Kalau belum login, arahkan ke halaman Login
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Silakan login terlebih dahulu")),
+      );
+      Navigator.push(
         context,
         MaterialPageRoute(builder: (context) => const LoginPage()),
       );
@@ -58,12 +58,17 @@ class _CustomerHomePageState extends State<CustomerHomePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      appBar: CustomAppBar(title: "Customer Home"),
+      appBar: CustomAppBar(
+          title: "ZweetCorner",
+          style: const TextStyle(
+            color: Color(0xFFD81B60), // INI WARNA MERAH TEMA ZWEET
+            fontWeight: FontWeight.bold,
+            fontSize: 18,
+          )),
       body: ListView(
         padding: const EdgeInsets.all(16.0),
         children: [
           // 1. Banner Section
-
           SizedBox(
             height: 180,
             child: PageView(
@@ -74,85 +79,39 @@ class _CustomerHomePageState extends State<CustomerHomePage> {
               ],
             ),
           ),
-
           const SizedBox(height: 10),
-
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [_buildDot(true), _buildDot(false), _buildDot(false)],
           ),
-
           const SizedBox(height: 25),
 
           // 2. POPULAR MENU
-
           const Text(
             "Popular Menu",
             style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
           ),
-
           const SizedBox(height: 12),
-
-          StreamBuilder<QuerySnapshot>(
-            stream: FirebaseFirestore.instance
-                .collection(Product.collectionName)
-                .where('name', whereIn: [
-              'Kue keju',
-              'Kue nastar',
-              'Chococips'
-            ]).snapshots(),
-            builder: (context, snapshot) {
-              if (snapshot.connectionState == ConnectionState.waiting) {
-                return const Center(child: CircularProgressIndicator());
-              }
-
-              if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-                return const Center(
-                    child: Text("Menu populer tidak ditemukan"));
-              }
-
-              final docs = snapshot.data!.docs;
-
-              return Column(
-                children: docs.map((doc) {
-                  final data = doc.data() as Map<String, dynamic>;
-
-                  data['id'] = doc.id;
-
-                  final productObj = Product.fromJson(data);
-
-                  return _buildPopularCard(productObj);
-                }).toList(),
-              );
-            },
-          ),
+          _buildPopularMenuStream(),
 
           const SizedBox(height: 25),
 
           // 3. Section Kue
-
           _buildSectionHeader("Kue", () {
             Navigator.push(context,
                 MaterialPageRoute(builder: (context) => const KuePage()));
           }),
-
           const SizedBox(height: 10),
-
           _buildProductStream(Product.collectionName),
 
           const SizedBox(height: 25),
 
           // 4. Section Hampers
-
           _buildSectionHeader("Hampers", () {
             Navigator.push(context,
                 MaterialPageRoute(builder: (context) => const HampersPage()));
           }),
-
           const SizedBox(height: 10),
-
-          // Menggunakan nama koleksi Hampers, tapi diolah dengan model Product
-
           _buildProductStream(Hampers.collectionName),
         ],
       ),
@@ -160,15 +119,71 @@ class _CustomerHomePageState extends State<CustomerHomePage> {
     );
   }
 
-  // --- Widget Card untuk Popular Menu ---
+  // --- LOGIKA BOTTOM NAV DENGAN PAGAR ---
+  Widget _buildBottomNav(BuildContext context) {
+    return BottomNavigationBar(
+      type: BottomNavigationBarType.fixed,
+      selectedItemColor: Colors.pink,
+      unselectedItemColor: Colors.grey,
+      currentIndex: 0,
+      onTap: (index) {
+        if (index == 0) return; // Tetap di Home
+
+        // Gunakan fungsi _navigateTo untuk mengecek login secara otomatis
+        if (index == 1) _navigateTo(const CustomerCartPage());
+        if (index == 2) _navigateTo(const CustomerReceiptPage());
+        if (index == 3) _navigateTo(const CustomerDeliveryPage());
+        if (index == 4) _navigateTo(const CustomerFinishedOrderPage());
+      },
+      items: const [
+        BottomNavigationBarItem(icon: Icon(Icons.home), label: "Home"),
+        BottomNavigationBarItem(icon: Icon(Icons.shopping_cart), label: "Cart"),
+        BottomNavigationBarItem(
+            icon: Icon(Icons.point_of_sale), label: "To Paid"),
+        BottomNavigationBarItem(
+            icon: Icon(Icons.delivery_dining), label: "Delivery"),
+        BottomNavigationBarItem(
+            icon: Icon(Icons.check_circle), label: "Finished"),
+      ],
+    );
+  }
+
+  // --- UI HELPER (Tetap sama seperti aslinya tapi lebih rapi) ---
+
+  Widget _buildPopularMenuStream() {
+    return StreamBuilder<QuerySnapshot>(
+      stream: FirebaseFirestore.instance
+          .collection(Product.collectionName)
+          .where('name',
+              whereIn: ['Kue keju', 'Kue nastar', 'Chococips']).snapshots(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+          return const Center(child: Text("Menu populer tidak ditemukan"));
+        }
+        final docs = snapshot.data!.docs;
+        return Column(
+          children: docs.map((doc) {
+            final data = doc.data() as Map<String, dynamic>;
+            data['id'] = doc.id;
+            final productObj = Product.fromJson(data);
+            return _buildPopularCard(productObj);
+          }).toList(),
+        );
+      },
+    );
+  }
 
   Widget _buildPopularCard(Product product) {
     return InkWell(
       onTap: () {
         Navigator.push(
-            context,
-            MaterialPageRoute(
-                builder: (context) => DetailProductPage(product: product)));
+          context,
+          MaterialPageRoute(
+              builder: (context) => DetailProductPage(product: product)),
+        );
       },
       child: Container(
         margin: const EdgeInsets.only(bottom: 12),
@@ -186,27 +201,7 @@ class _CustomerHomePageState extends State<CustomerHomePage> {
         ),
         child: Row(
           children: [
-            Container(
-              height: 60,
-              width: 60,
-              decoration: BoxDecoration(
-                color: Colors.grey[100],
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(10),
-                child: Image.asset(
-                  product.image, // Mengambil dari getter image di product.dart
-
-                  fit: BoxFit.cover,
-
-                  errorBuilder: (context, error, stackTrace) {
-                    return const Icon(Icons.stars,
-                        color: Colors.orange, size: 30);
-                  },
-                ),
-              ),
-            ),
+            _buildProductImage(product.image),
             const SizedBox(width: 15),
             Expanded(
               child: Column(
@@ -220,20 +215,34 @@ class _CustomerHomePageState extends State<CustomerHomePage> {
                 ],
               ),
             ),
-            Text(
-              "Rp${product.price}",
-              style: const TextStyle(
-                  color: Colors.pink,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 15),
-            ),
+            Text("Rp${product.price}",
+                style: const TextStyle(
+                    color: Colors.pink,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 15)),
           ],
         ),
       ),
     );
   }
 
-  // --- Widget Stream untuk List Horizontal (Kue & Hampers) ---
+  Widget _buildProductImage(String path) {
+    return Container(
+      height: 60,
+      width: 60,
+      decoration: BoxDecoration(
+          color: Colors.grey[100], borderRadius: BorderRadius.circular(10)),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(10),
+        child: Image.asset(
+          path,
+          fit: BoxFit.cover,
+          errorBuilder: (context, error, stackTrace) =>
+              const Icon(Icons.stars, color: Colors.orange, size: 30),
+        ),
+      ),
+    );
+  }
 
   Widget _buildProductStream(String collection) {
     return SizedBox(
@@ -245,30 +254,19 @@ class _CustomerHomePageState extends State<CustomerHomePage> {
             .limit(5)
             .snapshots(),
         builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
+          if (snapshot.connectionState == ConnectionState.waiting)
             return const Center(child: CircularProgressIndicator());
-          }
-
-          if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+          if (!snapshot.hasData || snapshot.data!.docs.isEmpty)
             return const Center(child: Text("Tidak ada data"));
-          }
 
           final docs = snapshot.data!.docs;
-
           return ListView.builder(
             scrollDirection: Axis.horizontal,
             itemCount: docs.length,
             itemBuilder: (context, index) {
               final data = docs[index].data() as Map<String, dynamic>;
-
-              data['id'] = docs[index].id; // Masukkan ID dokumen
-
-              // LOGIKA UTAMA: Bungkus data dengan model Product
-
-              // supaya getter .image (manual assets) bisa terbaca
-
+              data['id'] = docs[index].id;
               final productObj = Product.fromJson(data);
-
               return Padding(
                 padding: const EdgeInsets.only(right: 12),
                 child: SizedBox(
@@ -297,11 +295,10 @@ class _CustomerHomePageState extends State<CustomerHomePage> {
         Text(title,
             style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
         TextButton(
-          onPressed: onTap,
-          child: Text("See All >",
-              style: TextStyle(
-                  color: Colors.grey[500], fontWeight: FontWeight.bold)),
-        ),
+            onPressed: onTap,
+            child: Text("See All >",
+                style: TextStyle(
+                    color: Colors.grey[500], fontWeight: FontWeight.bold))),
       ],
     );
   }
@@ -324,50 +321,6 @@ class _CustomerHomePageState extends State<CustomerHomePage> {
         borderRadius: BorderRadius.circular(20),
         image: DecorationImage(image: AssetImage(imagePath), fit: BoxFit.cover),
       ),
-    );
-  }
-
-  Widget _buildBottomNav(BuildContext context) {
-    return BottomNavigationBar(
-      type: BottomNavigationBarType.fixed,
-      selectedItemColor: Colors.pink,
-      unselectedItemColor: Colors.grey,
-      currentIndex: 0,
-      onTap: (index) {
-        if (index == 1)
-          Navigator.push(
-              context,
-              MaterialPageRoute(
-                  builder: (context) => const CustomerCartPage()));
-
-        if (index == 2)
-          Navigator.push(
-              context,
-              MaterialPageRoute(
-                  builder: (context) => const CustomerReceiptPage()));
-
-        if (index == 3)
-          Navigator.push(
-              context,
-              MaterialPageRoute(
-                  builder: (context) => const CustomerDeliveryPage()));
-
-        if (index == 4)
-          Navigator.push(
-              context,
-              MaterialPageRoute(
-                  builder: (context) => const CustomerFinishedOrderPage()));
-      },
-      items: const [
-        BottomNavigationBarItem(icon: Icon(Icons.home), label: "Home"),
-        BottomNavigationBarItem(icon: Icon(Icons.shopping_cart), label: "Cart"),
-        BottomNavigationBarItem(
-            icon: Icon(Icons.point_of_sale), label: "To Paid"),
-        BottomNavigationBarItem(
-            icon: Icon(Icons.delivery_dining), label: "Delivery"),
-        BottomNavigationBarItem(
-            icon: Icon(Icons.check_circle), label: "Finished"),
-      ],
     );
   }
 }

@@ -15,107 +15,75 @@ class LoginPage extends StatefulWidget {
 
 class _LoginPageState extends State<LoginPage> {
   bool _obscureText = true;
-  // bool _rememberMe = false;
   bool _isLoading = false;
-  // State baru untuk handle loading awal saat cek sesi
   bool _isCheckingSession = true;
 
   final TextEditingController _usernameController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   final AuthService _authService = AuthService();
 
-  // --- LOGIKA UTAMA CEK SESI ---
+  @override
+  void initState() {
+    super.initState();
+    _checkSession();
+  }
+
   void _checkSession() async {
-    // 1. Cek apakah ada data login di Shared Preferences
     bool isLogin = await SessionManager.isUserLoggedIn();
-
     if (isLogin) {
-      // 2. Ambil User ID dari Shared Preferences
       String? userId = await SessionManager.getUserIdFuture();
-
       if (userId != null) {
-        // 3. Ambil data User (Role) dari Firestore
         String? role = await _authService.getUserRole(userId);
-
         if (role != null) {
-          // 4. Jika sukses, langsung navigasi
           _navigateBasedOnRole(role);
-          return; // Stop eksekusi agar tidak mengubah state _isCheckingSession
+          return;
         } else {
-          // Kasus aneh: Di HP login, tapi di Firestore user sudah dihapus/error
-          // Maka paksa logout dari HP
           await SessionManager.logout();
         }
       }
     }
-
-    // Jika tidak ada sesi atau sesi tidak valid, matikan loading dan tampilkan form
     if (mounted) {
-      setState(() {
-        _isCheckingSession = false;
-      });
+      setState(() => _isCheckingSession = false);
     }
   }
 
-  // Helper untuk navigasi
   void _navigateBasedOnRole(String role) {
     if (!mounted) return;
-
     if (role == 'admin') {
       Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => AdminHomePage()),
-      );
+          context, MaterialPageRoute(builder: (_) => const AdminHomePage()));
     } else {
       Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => CustomerHomePage()),
-      );
+          context, MaterialPageRoute(builder: (_) => const CustomerHomePage()));
     }
   }
 
   void _handleLogin() async {
-    // 1. Validasi Input Kosong
     if (_usernameController.text.isEmpty || _passwordController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Username dan Password harus diisi")),
+        const SnackBar(content: Text("Username dan Password harus diisi")),
       );
       return;
     }
-
     setState(() => _isLoading = true);
-
-    // 2. Panggil Service Login
     LoginInformation statusLogin = await _authService.login(
       _usernameController.text.trim(),
       _passwordController.text.trim(),
     );
-
     setState(() => _isLoading = false);
 
-    // 3. Navigasi jika sukses
     if (statusLogin.success) {
-      // NOTE: Pastikan di dalam method _authService.login() Anda sudah memanggil
-      // SessionManager.saveSession(...) agar auto-login bekerja di pembukaan aplikasi berikutnya.
-
       _navigateBasedOnRole(statusLogin.role);
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Login Gagal. Cek username atau password.")),
+        const SnackBar(
+            content: Text("Login Gagal. Cek username atau password.")),
       );
     }
   }
 
   @override
-  void initState() {
-    super.initState();
-    // Panggil pengecekan sesi saat halaman pertama kali dibuat
-    _checkSession();
-  }
-
-  @override
   void dispose() {
-    // Jangan lupa dispose controller agar memori tidak bocor
     _usernameController.dispose();
     _passwordController.dispose();
     super.dispose();
@@ -123,57 +91,58 @@ class _LoginPageState extends State<LoginPage> {
 
   @override
   Widget build(BuildContext context) {
-    // Jika sedang mengecek sesi, tampilkan Loading Screen polos
-    // Ini mencegah Form Login "berkedip" sebelum pindah halaman
     if (_isCheckingSession) {
       return const Scaffold(
         backgroundColor: Color(0xFFFDE9D9),
-        body: Center(
-          child: CircularProgressIndicator(
-            color: Color(0xFFD81B60),
-          ),
-        ),
+        body:
+            Center(child: CircularProgressIndicator(color: Color(0xFFD81B60))),
       );
     }
 
     return Scaffold(
-      // Background warna krem muda sesuai bagian atas gambar
       backgroundColor: const Color(0xFFFDE9D9),
+      // --- FITUR BARU: Tombol Back di AppBar ---
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios_new, color: Color(0xFFD81B60)),
+          onPressed: () {
+            // Kembali ke Customer Home Page
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (context) => const CustomerHomePage()),
+            );
+          },
+        ),
+      ),
+      extendBodyBehindAppBar:
+          true, // Agar background body naik sampai ke belakang AppBar
       body: Column(
         children: [
-          const SizedBox(height: 60),
-          // Bagian Logo
+          const SizedBox(height: 80), // Sesuaikan jarak karena ada AppBar
           Center(
             child: Column(
-              children: [
-                // Ganti dengan Image.asset('assets/logo.png') jika sudah ada filenya
-                const Text(
+              children: const [
+                Text(
                   "Zweet",
                   style: TextStyle(
-                    fontFamily:
-                        'Cursive', // Gunakan font dekoratif jika tersedia
                     fontSize: 48,
                     color: Color(0xFFD81B60),
                     fontWeight: FontWeight.bold,
                   ),
                 ),
-                const Text(
+                Text(
                   "corner",
                   style: TextStyle(
-                    fontSize: 24,
-                    color: Color(0xFFD81B60),
-                    letterSpacing: 2,
-                  ),
+                      fontSize: 24, color: Color(0xFFD81B60), letterSpacing: 2),
                 ),
-                const Text(
-                  "Handcrafted Cookies",
-                  style: TextStyle(color: Colors.black54, fontSize: 12),
-                ),
+                Text("Handcrafted Cookies",
+                    style: TextStyle(color: Colors.black54, fontSize: 12)),
               ],
             ),
           ),
           const SizedBox(height: 40),
-          // Bagian Form dengan background putih melengkung
           Expanded(
             child: Container(
               width: double.infinity,
@@ -205,53 +174,11 @@ class _LoginPageState extends State<LoginPage> {
                               : Icons.visibility_off_outlined,
                           color: Colors.blueGrey[200],
                         ),
-                        onPressed: () {
-                          setState(() {
-                            _obscureText = !_obscureText;
-                          });
-                        },
+                        onPressed: () =>
+                            setState(() => _obscureText = !_obscureText),
                       ),
                     ),
-                    const SizedBox(height: 10),
-                    //
-                    // // Remember Me & Forgot Password
-                    // Row(
-                    //   mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    //   children: [
-                    //     Row(
-                    //       children: [
-                    //         SizedBox(
-                    //           height: 24,
-                    //           width: 24,
-                    //           child: Checkbox(
-                    //             value: _rememberMe,
-                    //             activeColor: const Color(0xFFD81B60),
-                    //             onChanged: (value) {
-                    //               setState(() {
-                    //                 _rememberMe = value!;
-                    //               });
-                    //             },
-                    //           ),
-                    //         ),
-                    //         const Text(" Remember me",
-                    //             style: TextStyle(
-                    //                 color: Colors.grey, fontSize: 12)),
-                    //       ],
-                    //     ),
-                    //     TextButton(
-                    //       onPressed: () {},
-                    //       child: const Text(
-                    //         "Forgot Password",
-                    //         style: TextStyle(
-                    //             color: Color(0xFFD81B60), fontSize: 12),
-                    //       ),
-                    //     ),
-                    //   ],
-                    // ),
-                    //
-                    const SizedBox(height: 20),
-
-                    // Button Log In
+                    const SizedBox(height: 30),
                     SizedBox(
                       width: double.infinity,
                       height: 55,
@@ -260,55 +187,34 @@ class _LoginPageState extends State<LoginPage> {
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFFD81B60),
                           shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(15),
-                          ),
+                              borderRadius: BorderRadius.circular(15)),
                         ),
-                        child: const Text(
-                          "LOG IN",
-                          style: TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 16),
-                        ),
+                        child: _isLoading
+                            ? const CircularProgressIndicator(
+                                color: Colors.white)
+                            : const Text("LOG IN",
+                                style: TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 16)),
                       ),
                     ),
                     const SizedBox(height: 20),
-                    // Footer Sign Up
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Material(
-                          color: Colors
-                              .transparent, // Agar background tetap terlihat
-                          child: InkWell(
-                            borderRadius: BorderRadius.circular(
-                                10), // Biar sudut ripple melengkung
-                            onTap: () {
-                              // Masukkan logic pindah halaman di sini
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => RegisterPage(),
-                                ),
-                              );
-                            },
-                            child: Padding(
-                              padding: const EdgeInsets.all(
-                                  8.0), // Jarak sentuh agar lebih empuk
-                              child: Row(
-                                children: const [
-                                  Text("Don't have an account? ",
-                                      style: TextStyle(color: Colors.grey)),
-                                  const Text(
-                                    "SIGN UP",
-                                    style: TextStyle(
-                                      color: Color(0xFFD81B60),
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
+                        const Text("Don't have an account? ",
+                            style: TextStyle(color: Colors.grey)),
+                        GestureDetector(
+                          onTap: () => Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                  builder: (_) => const RegisterPage())),
+                          child: const Text(
+                            "SIGN UP",
+                            style: TextStyle(
+                                color: Color(0xFFD81B60),
+                                fontWeight: FontWeight.bold),
                           ),
                         ),
                       ],
@@ -326,31 +232,26 @@ class _LoginPageState extends State<LoginPage> {
   Widget _buildLabel(String text) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 8.0),
-      child: Text(
-        text,
-        style: const TextStyle(
-          color: Colors.blueGrey,
-          fontSize: 12,
-          fontWeight: FontWeight.bold,
-          letterSpacing: 1.2,
-        ),
-      ),
+      child: Text(text,
+          style: const TextStyle(
+              color: Colors.blueGrey,
+              fontSize: 12,
+              fontWeight: FontWeight.bold,
+              letterSpacing: 1.2)),
     );
   }
 
-  Widget _buildTextField({
-    required TextEditingController controller, // 1. Tambahkan parameter ini
-    required String hint,
-    bool isPassword = false,
-    Widget? suffixIcon,
-  }) {
+  Widget _buildTextField(
+      {required TextEditingController controller,
+      required String hint,
+      bool isPassword = false,
+      Widget? suffixIcon}) {
     return Container(
       decoration: BoxDecoration(
-        color: const Color(0xFFF1F5F9),
-        borderRadius: BorderRadius.circular(12),
-      ),
+          color: const Color(0xFFF1F5F9),
+          borderRadius: BorderRadius.circular(12)),
       child: TextField(
-        controller: controller, // 2. Pasang controller di sini
+        controller: controller,
         obscureText: isPassword ? _obscureText : false,
         decoration: InputDecoration(
           hintText: hint,

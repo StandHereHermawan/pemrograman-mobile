@@ -1,14 +1,16 @@
 import 'package:flutter/material.dart';
-import 'package:pemprograman_mobile/attend/on_16/practice/_2/page/profile.dart'; 
+import 'package:pemprograman_mobile/attend/on_16/practice/_2/page/profile.dart';
 
 class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
   final String title;
   final VoidCallback? onProfilePressed;
+  final TextStyle? style; // <--- 1. TAMBAHKAN INI
 
   const CustomAppBar({
     super.key,
-    required this.title, // Parameter wajib
-    this.onProfilePressed, // Parameter opsional
+    required this.title,
+    this.onProfilePressed,
+    this.style, // <--- 2. TAMBAHKAN KE CONSTRUCTOR
   });
 
   @override
@@ -17,11 +19,10 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
       backgroundColor: Colors.white,
       elevation: 0,
       centerTitle: true,
-      // Container Judul
       title: Container(
         height: 45,
-        width: double.infinity, // Agar memenuhi lebar area title
-        alignment: Alignment.center, // Menggantikan Column/Expanded yang berisiko error
+        width: double.infinity,
+        alignment: Alignment.center,
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(10),
@@ -35,11 +36,13 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
         ),
         child: Text(
           title,
-          style: const TextStyle(
-            color: Colors.grey,
-            fontWeight: FontWeight.bold, // Opsional: Agar lebih tegas
-            fontSize: 16,
-          ),
+          // 3. GANTI STYLE-NYA JADI SEPERTI INI
+          style: style ??
+              const TextStyle(
+                color: Colors.grey, // Warna default kalau kamu nggak isi style
+                fontWeight: FontWeight.bold,
+                fontSize: 16,
+              ),
         ),
       ),
       actions: [
@@ -47,13 +50,10 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
           padding: const EdgeInsets.only(right: 16.0),
           child: InkWell(
             borderRadius: BorderRadius.circular(30),
-            // --- LOGIKA DEFAULT CALLBACK ---
             onTap: () {
               if (onProfilePressed != null) {
-                // Jika parameter fungsi diisi, jalankan fungsi tersebut
                 onProfilePressed!();
               } else {
-                // Default value: Pindah ke ProfilePage
                 Navigator.pushReplacement(
                   context,
                   MaterialPageRoute(builder: (context) => const ProfilePage()),
@@ -70,7 +70,6 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
     );
   }
 
-  // Wajib ada jika membuat custom AppBar
   @override
   Size get preferredSize => const Size.fromHeight(kToolbarHeight);
 }
