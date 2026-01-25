@@ -1,17 +1,31 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+
 import 'package:flutter/material.dart';
+
 import 'package:pemprograman_mobile/attend/on_16/practice/_2/page/customer/customer_kue.dart';
+
 import 'package:pemprograman_mobile/attend/on_16/practice/_2/page/customer/customer_hampers.dart';
+
 import 'package:pemprograman_mobile/attend/on_16/practice/_2/data/hampers.dart';
+
 import 'package:pemprograman_mobile/attend/on_16/practice/_2/data/product.dart';
+
 import 'package:pemprograman_mobile/attend/on_16/practice/_2/page/customer/customer_cart.dart';
+
 import 'package:pemprograman_mobile/attend/on_16/practice/_2/page/customer/customer_delivery.dart';
+
 import 'package:pemprograman_mobile/attend/on_16/practice/_2/page/customer/customer_finished_order.dart';
+
 import 'package:pemprograman_mobile/attend/on_16/practice/_2/page/customer/customer_receipt.dart';
+
 import 'package:pemprograman_mobile/attend/on_16/practice/_2/page/detail_product.dart';
+
 import 'package:pemprograman_mobile/attend/on_16/practice/_2/page/login.dart';
+
 import 'package:pemprograman_mobile/attend/on_16/practice/_2/user_interface_component/appbar.dart';
+
 import 'package:pemprograman_mobile/attend/on_16/practice/_2/user_interface_component/product_card_customer.dart';
+
 import 'package:pemprograman_mobile/attend/on_16/practice/_2/util/session_manager.dart';
 
 class CustomerHomePage extends StatefulWidget {
@@ -25,11 +39,13 @@ class _CustomerHomePageState extends State<CustomerHomePage> {
   @override
   void initState() {
     super.initState();
+
     _checkSession();
   }
 
   void _checkSession() async {
     bool isLogin = await SessionManager.isUserLoggedIn();
+
     if (!isLogin && mounted) {
       Navigator.pushReplacement(
         context,
@@ -47,6 +63,7 @@ class _CustomerHomePageState extends State<CustomerHomePage> {
         padding: const EdgeInsets.all(16.0),
         children: [
           // 1. Banner Section
+
           SizedBox(
             height: 180,
             child: PageView(
@@ -57,35 +74,53 @@ class _CustomerHomePageState extends State<CustomerHomePage> {
               ],
             ),
           ),
+
           const SizedBox(height: 10),
+
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [_buildDot(true), _buildDot(false), _buildDot(false)],
           ),
+
           const SizedBox(height: 25),
 
-          // 2. POPULAR MENU (Hapus See All & Ambil 3 Produk)
+          // 2. POPULAR MENU
+
           const Text(
             "Popular Menu",
             style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
           ),
+
           const SizedBox(height: 12),
 
-          // Stream khusus untuk Popular Menu
           StreamBuilder<QuerySnapshot>(
             stream: FirebaseFirestore.instance
                 .collection(Product.collectionName)
-                .limit(3) // Ambil 3 data saja
-                .snapshots(),
+                .where('name', whereIn: [
+              'Kue keju',
+              'Kue nastar',
+              'Chococips'
+            ]).snapshots(),
             builder: (context, snapshot) {
-              if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-                return const Center(child: Text("Belum ada menu populer"));
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Center(child: CircularProgressIndicator());
               }
+
+              if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                return const Center(
+                    child: Text("Menu populer tidak ditemukan"));
+              }
+
               final docs = snapshot.data!.docs;
+
               return Column(
                 children: docs.map((doc) {
                   final data = doc.data() as Map<String, dynamic>;
+
+                  data['id'] = doc.id;
+
                   final productObj = Product.fromJson(data);
+
                   return _buildPopularCard(productObj);
                 }).toList(),
               );
@@ -95,21 +130,29 @@ class _CustomerHomePageState extends State<CustomerHomePage> {
           const SizedBox(height: 25),
 
           // 3. Section Kue
+
           _buildSectionHeader("Kue", () {
             Navigator.push(context,
                 MaterialPageRoute(builder: (context) => const KuePage()));
           }),
+
           const SizedBox(height: 10),
+
           _buildProductStream(Product.collectionName),
 
           const SizedBox(height: 25),
 
           // 4. Section Hampers
+
           _buildSectionHeader("Hampers", () {
             Navigator.push(context,
                 MaterialPageRoute(builder: (context) => const HampersPage()));
           }),
+
           const SizedBox(height: 10),
+
+          // Menggunakan nama koleksi Hampers, tapi diolah dengan model Product
+
           _buildProductStream(Hampers.collectionName),
         ],
       ),
@@ -117,7 +160,8 @@ class _CustomerHomePageState extends State<CustomerHomePage> {
     );
   }
 
-  // Desain Kartu Popular Menu
+  // --- Widget Card untuk Popular Menu ---
+
   Widget _buildPopularCard(Product product) {
     return InkWell(
       onTap: () {
@@ -149,7 +193,19 @@ class _CustomerHomePageState extends State<CustomerHomePage> {
                 color: Colors.grey[100],
                 borderRadius: BorderRadius.circular(10),
               ),
-              child: const Icon(Icons.stars, color: Colors.orange, size: 30),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(10),
+                child: Image.asset(
+                  product.image, // Mengambil dari getter image di product.dart
+
+                  fit: BoxFit.cover,
+
+                  errorBuilder: (context, error, stackTrace) {
+                    return const Icon(Icons.stars,
+                        color: Colors.orange, size: 30);
+                  },
+                ),
+              ),
             ),
             const SizedBox(width: 15),
             Expanded(
@@ -177,7 +233,8 @@ class _CustomerHomePageState extends State<CustomerHomePage> {
     );
   }
 
-  // Stream untuk List Horizontal
+  // --- Widget Stream untuk List Horizontal (Kue & Hampers) ---
+
   Widget _buildProductStream(String collection) {
     return SizedBox(
       height: 230,
@@ -188,18 +245,30 @@ class _CustomerHomePageState extends State<CustomerHomePage> {
             .limit(5)
             .snapshots(),
         builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting)
-            return const SizedBox();
-          if (!snapshot.hasData || snapshot.data!.docs.isEmpty)
-            return const SizedBox();
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
+
+          if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+            return const Center(child: Text("Tidak ada data"));
+          }
 
           final docs = snapshot.data!.docs;
+
           return ListView.builder(
             scrollDirection: Axis.horizontal,
             itemCount: docs.length,
             itemBuilder: (context, index) {
               final data = docs[index].data() as Map<String, dynamic>;
+
+              data['id'] = docs[index].id; // Masukkan ID dokumen
+
+              // LOGIKA UTAMA: Bungkus data dengan model Product
+
+              // supaya getter .image (manual assets) bisa terbaca
+
               final productObj = Product.fromJson(data);
+
               return Padding(
                 padding: const EdgeInsets.only(right: 12),
                 child: SizedBox(
@@ -270,16 +339,19 @@ class _CustomerHomePageState extends State<CustomerHomePage> {
               context,
               MaterialPageRoute(
                   builder: (context) => const CustomerCartPage()));
+
         if (index == 2)
           Navigator.push(
               context,
               MaterialPageRoute(
                   builder: (context) => const CustomerReceiptPage()));
+
         if (index == 3)
           Navigator.push(
               context,
               MaterialPageRoute(
                   builder: (context) => const CustomerDeliveryPage()));
+
         if (index == 4)
           Navigator.push(
               context,

@@ -1,16 +1,27 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+
 import 'package:flutter/material.dart';
+
 import 'package:pemprograman_mobile/attend/on_16/practice/_2/data/cart.dart';
+
 import 'package:pemprograman_mobile/attend/on_16/practice/_2/data/helper/product_quantity.dart';
+
 import 'package:pemprograman_mobile/attend/on_16/practice/_2/data/helper/product_quantity_detail.dart';
+
 import 'package:pemprograman_mobile/attend/on_16/practice/_2/data/product.dart';
+
 import 'package:pemprograman_mobile/attend/on_16/practice/_2/data/receipt.dart';
+
 import 'package:pemprograman_mobile/attend/on_16/practice/_2/page/login.dart';
+
 import 'package:pemprograman_mobile/attend/on_16/practice/_2/user_interface_component/appbar.dart';
+
 import 'package:pemprograman_mobile/attend/on_16/practice/_2/util/session_manager.dart';
+
 // import 'package:pemprograman_mobile/attend/on_16/practice/_2/util/session_manager.dart';
 
 // 1. Tambahkan parameter Product pada Constructor
+
 class DetailProductPage extends StatefulWidget {
   final Product product; // Data produk yang dilempar dari halaman sebelumnya
 
@@ -25,8 +36,11 @@ class DetailProductPage extends StatefulWidget {
 
 class _DetailProductPageState extends State<DetailProductPage> {
   String? userId;
+
   int quantity = 1;
+
   bool _isLoadingCart = false; // Untuk indikator loading tombol
+
   bool _isLoadingBuyNow = false; // Untuk indikator loading tombol
 
   void _incrementQuantity() {
@@ -46,22 +60,27 @@ class _DetailProductPageState extends State<DetailProductPage> {
   @override
   void dispose() {
     // Jangan lupa dispose controller agar memori tidak bocor
+
     super.dispose();
   }
 
   // --- LOGIKA UTAMA CEK SESI ---
+
   Future<void> _checkSession() async {
     // 1. Cek Login Status
+
     bool isLogin = await SessionManager.isUserLoggedIn();
 
     if (!mounted) return; // Cek apakah widget masih ada
 
     if (!isLogin) {
       _redirectToLogin();
+
       return;
     }
 
     // 2. Ambil User ID
+
     String? id = await SessionManager.getUserIdFuture();
 
     if (!mounted) return;
@@ -70,6 +89,7 @@ class _DetailProductPageState extends State<DetailProductPage> {
       _redirectToLogin();
     } else {
       // 3. Simpan ke State dan Re-build UI
+
       setState(() {
         userId = id;
       });
@@ -79,6 +99,7 @@ class _DetailProductPageState extends State<DetailProductPage> {
   @override
   void initState() {
     super.initState();
+
     _checkSession();
   }
 
@@ -90,34 +111,42 @@ class _DetailProductPageState extends State<DetailProductPage> {
   }
 
   // --- LOGIC ADD TO CART ---
-  Future<void> _addToCart(int currentTotalPrice) async {
 
+  Future<void> _addToCart(int currentTotalPrice) async {
     setState(() {
       _isLoadingCart = true;
     });
 
     try {
       // 1. Buat Referensi Dokumen Baru di Collection 'carts'
+
       DocumentReference cartRef = FirebaseFirestore.instance
           .collection(Cart.collectionName)
           .doc(); // Biarkan Firestore generate ID unik otomatis
 
       // 2. Siapkan Objek ProductQuantity (Item yang mau dibeli)
+
       ProductQuantity item = ProductQuantity(
         productId: widget.product.id,
         quantity: quantity.toString(),
       );
 
       // 3. Siapkan Objek Cart (Bungkus item tadi ke dalam Cart)
+
       Cart newCart = Cart(
         id: cartRef.id, // Pakai ID dari referensi di atas
+
         userId: userId ?? "", // Ganti dengan ID User login nanti
+
         productCollection: [item], // Masukkan item ke dalam list
+
         createdAt: DateTime.now().toString(),
+
         cartType: "product",
       );
 
       // 4. Kirim ke Firestore (.set)
+
       await cartRef.set(newCart.toJson());
 
       if (mounted) {
@@ -146,12 +175,14 @@ class _DetailProductPageState extends State<DetailProductPage> {
       }
     }
   }
+
   // -------------------------
 
   // --- LOGIC ADD TO RECEIPT ---
-  // --- LOGIC BELI SEKARANG (CREATE RECEIPT) ---
-  Future<void> _addToReceipt(int currentTotalPrice, int quantity) async {
 
+  // --- LOGIC BELI SEKARANG (CREATE RECEIPT) ---
+
+  Future<void> _addToReceipt(int currentTotalPrice, int quantity) async {
     setState(() {
       _isLoadingBuyNow = true;
     });
@@ -162,28 +193,41 @@ class _DetailProductPageState extends State<DetailProductPage> {
           .doc(); // 1. Buat Referensi Dokumen Baru di Collection 'receipts'
 
       // 2. Siapkan Data
+
       // Karena struktur Receipt meminta List<Product>, kita bungkus produk saat ini ke dalam List.
+
       // Catatan: Karena model Product tidak menyimpan quantity,
+
       // kita hanya menyimpan info produknya dan total harga akhirnya.
+
       List<ProductQuantityDetail> productsToBuy = [
         ProductQuantityDetail(
             product: widget.product, quantity: quantity.toString())
       ];
 
       // 3. Buat Objek Receipt
+
       Receipt newReceipt = Receipt(
         id: receiptRef.id,
+
         userId: userId ?? "", // Ganti dengan ID User login asli nanti
+
         productReceiptCollection: productsToBuy,
+
         hampersReceiptCollection: [], // Kosongkan karena ini beli produk satuan
+
         totalPrice:
             currentTotalPrice.toString(), // Konversi int ke String sesuai model
+
         isPaid: false, // Default belum bayar
+
         createdAt: DateTime.now().toString(),
+
         requestReceiptAlreadyPaid: false,
       );
 
       // 4. Kirim ke Firestore (.set)
+
       await receiptRef.set(newReceipt.toJson());
 
       if (mounted) {
@@ -196,6 +240,7 @@ class _DetailProductPageState extends State<DetailProductPage> {
         );
 
         // Opsional: Pindah ke halaman pembayaran atau history
+
         // Navigator.push(context, MaterialPageRoute(builder: (_) => PaymentPage()));
       }
     } catch (e) {
@@ -219,13 +264,14 @@ class _DetailProductPageState extends State<DetailProductPage> {
   @override
   Widget build(BuildContext context) {
     // 2. Gunakan widget.product.price sebagai harga dasar
+
     int totalPrice = widget.product.price * quantity;
+
     String price = "Rp.${widget.product.price}";
 
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: CustomAppBar(title: "Detail Product"),
-      
       body: Column(
         children: [
           Expanded(
@@ -234,6 +280,9 @@ class _DetailProductPageState extends State<DetailProductPage> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   // Placeholder Gambar
+
+                  // --- GANTI BLOK INI ---
+
                   Container(
                     height: 350,
                     width: double.infinity,
@@ -242,8 +291,24 @@ class _DetailProductPageState extends State<DetailProductPage> {
                       color: Colors.grey[300],
                       borderRadius: BorderRadius.circular(30),
                     ),
-                    child: const Icon(Icons.fastfood,
-                        size: 100, color: Colors.white),
+                    child: ClipRRect(
+                      // Tambahkan ClipRRect agar gambar ikut melengkung di pojoknya
+
+                      borderRadius: BorderRadius.circular(30),
+
+                      child: Image.asset(
+                        widget
+                            .product.image, // Mengambil path gambar dari model
+
+                        fit: BoxFit
+                            .cover, // Menyesuaikan gambar agar menutupi box
+
+                        errorBuilder: (context, error, stackTrace) {
+                          return const Icon(Icons.fastfood,
+                              size: 100, color: Colors.white);
+                        },
+                      ),
+                    ),
                   ),
 
                   Padding(
@@ -259,21 +324,29 @@ class _DetailProductPageState extends State<DetailProductPage> {
                                     fontWeight: FontWeight.bold, fontSize: 16)),
                           ],
                         ),
+
                         const SizedBox(height: 15),
+
                         // 3. Menampilkan Nama Produk secara Dinamis
+
                         Text(
                           widget.product.name,
                           style: const TextStyle(
                               fontSize: 24, fontWeight: FontWeight.bold),
                         ),
+
                         const SizedBox(height: 8),
+
                         // 4. Menampilkan Deskripsi Produk secara Dinamis
+
                         Text(
                           widget.product.description,
                           style:
                               const TextStyle(color: Colors.grey, fontSize: 14),
                         ),
+
                         const SizedBox(height: 15),
+
                         Row(
                           children: [
                             Text(
@@ -383,11 +456,13 @@ class _DetailProductPageState extends State<DetailProductPage> {
       {required VoidCallback onTap, bool isLoading = false}) {
     return ElevatedButton(
       onPressed: isLoading ? null : onTap, // Disable jika loading
+
       style: ElevatedButton.styleFrom(
         backgroundColor: bgColor,
         padding: const EdgeInsets.symmetric(vertical: 20),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
       ),
+
       child: isLoading
           ? const SizedBox(
               height: 20,

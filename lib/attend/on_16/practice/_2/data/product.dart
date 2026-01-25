@@ -30,7 +30,12 @@ class Product {
 
   get rating => null;
 
-  get image => null;
+String get image {
+  // Menghilangkan spasi, mengubah ke huruf kecil, dan menambah .png
+  // Contoh: "Kue Lapis" -> "kue_lapis.png"
+  String fileName = name.toLowerCase().replaceAll(' ', '_');
+  return "assets/images/$fileName.png";
+}
 
   Map<String, dynamic> toJson() {
     return {

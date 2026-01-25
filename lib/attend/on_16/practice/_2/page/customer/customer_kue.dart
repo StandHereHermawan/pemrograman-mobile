@@ -81,14 +81,28 @@ class KuePage extends StatelessWidget {
                         child: Center(
                           child: Container(
                             margin: const EdgeInsets.only(top: 12),
-                            width: 85,
-                            height: 85,
+                            width: 150,
+                            height: 150,
                             decoration: BoxDecoration(
                               color: Colors.grey[100],
                               shape: BoxShape.circle,
+                              // Memberi sedikit border supaya lingkaran gambar terlihat jelas
+                              border: Border.all(
+                                  color: Colors.grey.shade200, width: 1),
                             ),
-                            child: const Icon(Icons.cake,
-                                color: Colors.grey, size: 40),
+                            child: ClipOval(
+                              child: Image.asset(
+                                product
+                                    .image, // Mengambil path otomatis dari model
+                                fit: BoxFit
+                                    .cover, // Supaya gambar penuh di dalam lingkaran
+                                errorBuilder: (context, error, stackTrace) {
+                                  // Backup kalau path gambar tidak ketemu di assets
+                                  return const Icon(Icons.cake,
+                                      color: Colors.grey, size: 40);
+                                },
+                              ),
+                            ),
                           ),
                         ),
                       ),
