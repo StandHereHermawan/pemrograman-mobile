@@ -25,7 +25,7 @@ class _CustomerDeliveryPageState extends State<CustomerDeliveryPage> {
   @override
   void initState() {
     super.initState();
-    _checkSession(context);
+    _checkSession();
   }
 
   @override
@@ -35,16 +35,37 @@ class _CustomerDeliveryPageState extends State<CustomerDeliveryPage> {
   }
 
 // --- LOGIKA UTAMA CEK SESI ---
-  void _checkSession(BuildContext context) async {
-    // 1. Cek apakah ada data login di Shared Preferences
+  Future<void> _checkSession() async {
+    // 1. Cek Login Status
     bool isLogin = await SessionManager.isUserLoggedIn();
 
+    if (!mounted) return; // Cek apakah widget masih ada
+
     if (!isLogin) {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => LoginPage()),
-      );
+      _redirectToLogin();
+      return;
     }
+
+    // 2. Ambil User ID
+    String? id = await SessionManager.getUserIdFuture();
+
+    if (!mounted) return;
+
+    if (id == null || id.isEmpty) {
+      _redirectToLogin();
+    } else {
+      // 3. Simpan ke State dan Re-build UI
+      setState(() {
+        userId = id;
+      });
+    }
+  }
+
+  void _redirectToLogin() {
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (context) => const LoginPage()),
+    );
   }
 
   @override
@@ -151,7 +172,7 @@ class _CustomerDeliveryPageState extends State<CustomerDeliveryPage> {
                   final data = documents[index].data() as Map<String, dynamic>;
                   return DeliveryCustomerCard(
                       onTap: () {
-                        // 
+                        //
                         // Contoh penggunaan di halaman Home
                         // Navigator.push(
                         //   context,
