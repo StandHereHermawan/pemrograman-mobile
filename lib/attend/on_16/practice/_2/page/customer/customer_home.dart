@@ -25,7 +25,8 @@ class _CustomerHomePageState extends State<CustomerHomePage> {
   @override
   void initState() {
     super.initState();
-    _checkSession();
+    // LOGIKA DIUBAH: Kita tidak panggil _checkSession di sini
+    // agar user bisa langsung melihat isi home page.
   }
 
   Future<void> _checkSession() async {
@@ -61,7 +62,13 @@ class _CustomerHomePageState extends State<CustomerHomePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      appBar: CustomAppBar(title: "Customer Home"),
+      appBar: CustomAppBar(
+          title: "ZweetCorner",
+          style: const TextStyle(
+            color: Color(0xFFD81B60), // INI WARNA MERAH TEMA ZWEET
+            fontWeight: FontWeight.bold,
+            fontSize: 18,
+          )),
       body: ListView(
         padding: const EdgeInsets.all(16.0),
         children: [
@@ -83,33 +90,13 @@ class _CustomerHomePageState extends State<CustomerHomePage> {
           ),
           const SizedBox(height: 25),
 
-          // 2. POPULAR MENU (Hapus See All & Ambil 3 Produk)
+          // 2. POPULAR MENU
           const Text(
             "Popular Menu",
             style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 12),
-
-          // Stream khusus untuk Popular Menu
-          StreamBuilder<QuerySnapshot>(
-            stream: FirebaseFirestore.instance
-                .collection(Product.collectionName)
-                .limit(3) // Ambil 3 data saja
-                .snapshots(),
-            builder: (context, snapshot) {
-              if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-                return const Center(child: Text("Belum ada menu populer"));
-              }
-              final docs = snapshot.data!.docs;
-              return Column(
-                children: docs.map((doc) {
-                  final data = doc.data() as Map<String, dynamic>;
-                  final productObj = Product.fromJson(data);
-                  return _buildPopularCard(productObj);
-                }).toList(),
-              );
-            },
-          ),
+          _buildPopularMenuStream(),
 
           const SizedBox(height: 25),
 
@@ -136,14 +123,71 @@ class _CustomerHomePageState extends State<CustomerHomePage> {
     );
   }
 
-  // Desain Kartu Popular Menu
+  // --- LOGIKA BOTTOM NAV DENGAN PAGAR ---
+  Widget _buildBottomNav(BuildContext context) {
+    return BottomNavigationBar(
+      type: BottomNavigationBarType.fixed,
+      selectedItemColor: Colors.pink,
+      unselectedItemColor: Colors.grey,
+      currentIndex: 0,
+      onTap: (index) {
+        if (index == 0) return; // Tetap di Home
+
+        // Gunakan fungsi _navigateTo untuk mengecek login secara otomatis
+        if (index == 1) _navigateTo(const CustomerCartPage());
+        if (index == 2) _navigateTo(const CustomerReceiptPage());
+        if (index == 3) _navigateTo(const CustomerDeliveryPage());
+        if (index == 4) _navigateTo(const CustomerFinishedOrderPage());
+      },
+      items: const [
+        BottomNavigationBarItem(icon: Icon(Icons.home), label: "Home"),
+        BottomNavigationBarItem(icon: Icon(Icons.shopping_cart), label: "Cart"),
+        BottomNavigationBarItem(
+            icon: Icon(Icons.point_of_sale), label: "To Paid"),
+        BottomNavigationBarItem(
+            icon: Icon(Icons.delivery_dining), label: "Delivery"),
+        BottomNavigationBarItem(
+            icon: Icon(Icons.check_circle), label: "Finished"),
+      ],
+    );
+  }
+
+  // --- UI HELPER (Tetap sama seperti aslinya tapi lebih rapi) ---
+
+  Widget _buildPopularMenuStream() {
+    return StreamBuilder<QuerySnapshot>(
+      stream: FirebaseFirestore.instance
+          .collection(Product.collectionName)
+          .where('name',
+              whereIn: ['Kue keju', 'Kue nastar', 'Chococips']).snapshots(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+          return const Center(child: Text("Menu populer tidak ditemukan"));
+        }
+        final docs = snapshot.data!.docs;
+        return Column(
+          children: docs.map((doc) {
+            final data = doc.data() as Map<String, dynamic>;
+            data['id'] = doc.id;
+            final productObj = Product.fromJson(data);
+            return _buildPopularCard(productObj);
+          }).toList(),
+        );
+      },
+    );
+  }
+
   Widget _buildPopularCard(Product product) {
     return InkWell(
       onTap: () {
         Navigator.push(
-            context,
-            MaterialPageRoute(
-                builder: (context) => DetailProductPage(product: product)));
+          context,
+          MaterialPageRoute(
+              builder: (context) => DetailProductPage(product: product)),
+        );
       },
       child: Container(
         margin: const EdgeInsets.only(bottom: 12),
@@ -161,15 +205,7 @@ class _CustomerHomePageState extends State<CustomerHomePage> {
         ),
         child: Row(
           children: [
-            Container(
-              height: 60,
-              width: 60,
-              decoration: BoxDecoration(
-                color: Colors.grey[100],
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: const Icon(Icons.stars, color: Colors.orange, size: 30),
-            ),
+            _buildProductImage(product.image),
             const SizedBox(width: 15),
             Expanded(
               child: Column(
@@ -183,20 +219,35 @@ class _CustomerHomePageState extends State<CustomerHomePage> {
                 ],
               ),
             ),
-            Text(
-              "Rp${product.price}",
-              style: const TextStyle(
-                  color: Colors.pink,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 15),
-            ),
+            Text("Rp${product.price}",
+                style: const TextStyle(
+                    color: Colors.pink,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 15)),
           ],
         ),
       ),
     );
   }
 
-  // Stream untuk List Horizontal
+  Widget _buildProductImage(String path) {
+    return Container(
+      height: 60,
+      width: 60,
+      decoration: BoxDecoration(
+          color: Colors.grey[100], borderRadius: BorderRadius.circular(10)),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(10),
+        child: Image.asset(
+          path,
+          fit: BoxFit.cover,
+          errorBuilder: (context, error, stackTrace) =>
+              const Icon(Icons.stars, color: Colors.orange, size: 30),
+        ),
+      ),
+    );
+  }
+
   Widget _buildProductStream(String collection) {
     return SizedBox(
       height: 230,
@@ -220,6 +271,7 @@ class _CustomerHomePageState extends State<CustomerHomePage> {
             itemCount: docs.length,
             itemBuilder: (context, index) {
               final data = docs[index].data() as Map<String, dynamic>;
+              data['id'] = docs[index].id;
               final productObj = Product.fromJson(data);
               return Padding(
                 padding: const EdgeInsets.only(right: 12),
@@ -249,11 +301,10 @@ class _CustomerHomePageState extends State<CustomerHomePage> {
         Text(title,
             style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
         TextButton(
-          onPressed: onTap,
-          child: Text("See All >",
-              style: TextStyle(
-                  color: Colors.grey[500], fontWeight: FontWeight.bold)),
-        ),
+            onPressed: onTap,
+            child: Text("See All >",
+                style: TextStyle(
+                    color: Colors.grey[500], fontWeight: FontWeight.bold))),
       ],
     );
   }

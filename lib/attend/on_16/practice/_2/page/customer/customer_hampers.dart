@@ -88,18 +88,32 @@ class HampersPage extends StatelessWidget {
                         child: Center(
                           child: Container(
                             margin: const EdgeInsets.only(top: 12),
-                            width: 85,
-                            height: 85,
+                            width: 150,
+                            height: 150,
                             decoration: BoxDecoration(
                               color: Colors.grey[100],
                               shape: BoxShape.circle,
+                              border: Border.all(
+                                  color: Colors.grey.shade200, width: 1),
                             ),
-                            child: const Icon(Icons.shopping_bag,
-                                color: Colors.grey, size: 40),
+                            child: ClipOval(
+                              child: Image.asset(
+                                productObj
+                                    .image, // Menggunakan getter image dari model Product
+                                fit: BoxFit.cover,
+                                errorBuilder: (context, error, stackTrace) {
+                                  // Jika gambar tidak ditemukan, tampilkan icon tas belanja
+                                  return const Icon(
+                                    Icons.shopping_bag,
+                                    color: Colors.grey,
+                                    size: 40,
+                                  );
+                                },
+                              ),
+                            ),
                           ),
                         ),
                       ),
-
                       // 2. Konten Teks
                       Padding(
                         padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
